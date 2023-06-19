@@ -1,0 +1,187 @@
+openapi: "3.0.2"
+info:
+  title: API Title
+  version: "1.0"
+
+components:
+  schemas:
+    VideoDescription:
+      type: object
+      properties:
+        width:
+          type: integer
+        height:
+          type: integer
+        fps:
+          type: integer
+        pixel_format:
+          type: string
+        codec_format:
+          type: string
+
+    AudioDescription:
+      type: object
+      properties:
+        sample_rate:
+          type: integer
+        channels:
+          type: integer
+        codec_format:
+          type: string
+
+    MediaDescription:
+      type: object
+      properties:
+        protocol:
+          type: string
+        url:
+          type: string
+        video_description:
+          $ref: '#/components/schemas/VideoDescription'
+        audio_description:
+          $ref: '#/components/schemas/AudioDescription'
+        custom_data:
+          type: string
+
+    AddSourceRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        media_description:
+          $ref: '#/components/schemas/MediaDescription'
+      required:
+        - media_description
+
+    AddSourceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        error:
+          type: string
+
+    RemoveSourceRequest:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+
+    RemoveSourceResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+    AddTransformRequest:
+      type: object
+      properties:
+        source_id:
+          type: string
+        transform_id:
+          type: string
+        media_description:
+          $ref: '#/components/schemas/MediaDescription'
+      required:
+        - media_description
+
+    AddTransformResponse:
+      type: object
+      properties:
+        transform_id:
+          type: string
+        error:
+          type: string
+
+    RemoveTransformRequest:
+      type: object
+      properties:
+        transform_id:
+          type: string
+      required:
+        - transform_id
+
+    RemoveTransformResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: OK
+  /add_source:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSourceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddSourceResponse'
+  /remove_source:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveSourceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveSourceResponse'
+
+  /add_transform:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTransformRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddTransformResponse'
+
+  /remove_transform:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveTransformRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveTransformResponse'
+
+  /get_sources:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MediaDescription'
