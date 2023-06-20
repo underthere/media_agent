@@ -9,6 +9,8 @@
 
 namespace MA {
 
+using uuid_t = std::string;
+
 struct Error {
   int code;
   std::string message;

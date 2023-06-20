@@ -20,8 +20,8 @@ class MediaAgent {
    * @param description
    * @return
    */
-  virtual auto add_source(const MediaDescription &description, const std::optional<std::string> &id = std::nullopt)
-      -> tl::expected<std::string, Error> = 0;
+  virtual auto add_source(const MediaDescription &description, const std::optional<uuid_t> &id = std::nullopt)
+      -> tl::expected<uuid_t, Error> = 0;
 
   /**
    * @brief configure a media source
@@ -29,14 +29,14 @@ class MediaAgent {
    * @param description
    * @return
    */
-  virtual auto configure_source(const std::string &source_id, const MediaDescription &description) -> tl::expected<void, Error> = 0;
+  virtual auto configure_source(const uuid_t &source_id, const MediaDescription &description) -> tl::expected<void, Error> = 0;
 
   /**
    * @brief remove a media source
    * @param source_id
    * @return
    */
-  virtual auto remove_source(const std::string &source_id) -> tl::expected<void, Error> = 0;
+  virtual auto remove_source(const uuid_t &source_id) -> tl::expected<void, Error> = 0;
 
   /**
    * @brief add a transform
@@ -45,8 +45,8 @@ class MediaAgent {
    * @param transform_id
    * @return
    */
-  virtual auto add_transform(const std::string &source_id, const MediaDescription &description,
-                             const std::optional<std::string> &transform_id = std::nullopt) -> tl::expected<std::string, Error> = 0;
+  virtual auto add_transform(const uuid_t &source_id, const MediaDescription &description,
+                             const std::optional<uuid_t> &transform_id = std::nullopt) -> tl::expected<uuid_t, Error> = 0;
 
   /**
    * @brief configure a transform
@@ -54,21 +54,24 @@ class MediaAgent {
    * @param description
    * @return
    */
-  virtual auto configure_transform(const std::string &transform_id, const MediaDescription &description) -> tl::expected<void, Error> = 0;
+  virtual auto configure_transform(const uuid_t &transform_id, const MediaDescription &description) -> tl::expected<void, Error> = 0;
 
   /**
    * @brief remove a transform
    * @param transform_id
    * @return
    */
-  virtual auto remove_transform(const std::string &transform_id) -> tl::expected<void, Error> = 0;
+  virtual auto remove_transform(const uuid_t &transform_id) -> tl::expected<void, Error> = 0;
 
   /**
    * @brief query a media flow graph
    * @param id
    * @return
    */
-  virtual auto query(const std::string &id) -> tl::expected<void, Error> = 0;  // should return a media flow graph
+  virtual auto query(const uuid_t &id) -> tl::expected<void, Error> = 0;  // should return a media flow graph
+
+ protected:
+
 };
 }  // namespace MA
 
