@@ -8,7 +8,7 @@ find_package(PkgConfig)
 pkg_check_modules(GST REQUIRED gstreamer-1.0)
 
 
-add_executable(media_agent sources/main.cpp) # sources/mediaagent.cpp sources/mediaagent.h sources/media_common.h sources/agentgstimpl.cpp sources/agentgstimpl.h sources/expected.h)
+add_executable(media_agent sources/main.cpp sources/agentgstimpl.cpp sources/utils.h) # sources/mediaagent.cpp sources/mediaagent.h sources/media_common.h sources/agentgstimpl.cpp sources/agentgstimpl.h sources/expected.h)
 
 message(STATUS "GST_INCLUDE_DIRS: ${GST_INCLUDE_DIRS}")
 

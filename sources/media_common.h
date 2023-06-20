@@ -1,5 +1,5 @@
 //
-// Created by 陈龙 on 2023/6/1.
+// Created by underthere on 2023/6/1.
 //
 
 #ifndef MEDIA_AGENT_MEDIA_COMMON_H
@@ -10,8 +10,8 @@
 namespace MA {
 
 struct Error {
-    std::string code;
-    std::string message;
+  int code;
+  std::string message;
 };
 
 enum class MAError {
@@ -53,6 +53,6 @@ struct MediaDescription {
   std::optional<AudioDescription> audio_description;
   std::optional<void *> custom_description;
 };
-} // namespace MA
+}  // namespace MA
 
-#endif // MEDIA_AGENT_MEDIA_COMMON_H
+#endif  // MEDIA_AGENT_MEDIA_COMMON_H
