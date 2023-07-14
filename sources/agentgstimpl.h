@@ -8,14 +8,9 @@
 #include <gst/gst.h>
 
 #include "mediaagent.h"
+#include "gst_wrapper.h"
 
 namespace MA {
-struct GstContextWrapper {
-  GstElement *pipeline;
-  GstElement *source;
-  GstElement *sink;
-  GstElement *transform;
-};
 
 class AgentGstImpl : public MediaAgent {
  public:
@@ -32,16 +27,10 @@ class AgentGstImpl : public MediaAgent {
   auto remove_source(const uuid_t &source_id) -> tl::expected<void, Error> override;
 
   auto add_transform(const uuid_t &source_id, const MediaDescription &description, const std::optional<uuid_t> &transform_id)
-      -> tl::expected<uuid_t, Error> override {
-    return tl::expected<uuid_t, Error>();
-  }
-  auto configure_transform(const uuid_t &transform_id, const MediaDescription &description) -> tl::expected<void, Error> override {
-    return tl::expected<void, Error>();
-  }
-  auto remove_transform(const uuid_t &transform_id) -> tl::expected<void, Error> override { return tl::expected<void, Error>(); }
-  auto query(const uuid_t &id) -> tl::expected<void, Error> override { return tl::expected<void, Error>(); }
-
- private:
+      -> tl::expected<uuid_t, Error> override;
+  auto configure_transform(const uuid_t &transform_id, const MediaDescription &description) -> tl::expected<void, Error> override;
+  auto remove_transform(const uuid_t &transform_id) -> tl::expected<void, Error> override;
+  auto query(const uuid_t &id) -> tl::expected<void, Error> override;
 
  private:
   std::unordered_map<uuid_t, GstContextWrapper> _context_map;

@@ -7,8 +7,9 @@ find_package(PkgConfig)
 
 pkg_check_modules(GST REQUIRED gstreamer-1.0)
 
+file (GLOB srcs sources/*.cpp)
 
-add_executable(media_agent sources/main.cpp sources/agentgstimpl.cpp sources/utils.h) # sources/mediaagent.cpp sources/mediaagent.h sources/media_common.h sources/agentgstimpl.cpp sources/agentgstimpl.h sources/expected.h)
+add_executable(media_agent ${srcs} playground/main.cpp) # sources/mediaagent.cpp sources/mediaagent.h sources/media_common.h sources/agentgstimpl.cpp sources/agentgstimpl.h sources/expected.h)
 
 message(STATUS "GST_INCLUDE_DIRS: ${GST_INCLUDE_DIRS}")
 
@@ -16,3 +17,6 @@ target_include_directories(media_agent PRIVATE ${GST_INCLUDE_DIRS})
 target_link_directories(media_agent PRIVATE ${GST_LIBRARY_DIRS})
 
 target_link_libraries(media_agent PRIVATE ${GST_LIBRARIES})
+
+
+add_subdirectory(playground)
