@@ -3,20 +3,38 @@ project("media_agent" VERSION 0.0 LANGUAGES CXX)
 
 # set cxx version to 20
 set(CMAKE_CXX_STANDARD 23)
-find_package(PkgConfig)
-
-pkg_check_modules(GST REQUIRED gstreamer-1.0)
 
 file (GLOB srcs sources/*.cpp)
 
-add_executable(media_agent ${srcs} playground/main.cpp) # sources/mediaagent.cpp sources/mediaagent.h sources/media_common.h sources/agentgstimpl.cpp sources/agentgstimpl.h sources/expected.h)
+include(FetchContent)
 
-message(STATUS "GST_INCLUDE_DIRS: ${GST_INCLUDE_DIRS}")
+FETCHCONTENT_DECLARE(
+        httplib
+        GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+        GIT_TAG v0.13.1
+)
 
-target_include_directories(media_agent PRIVATE ${GST_INCLUDE_DIRS})
-target_link_directories(media_agent PRIVATE ${GST_LIBRARY_DIRS})
+FETCHCONTENT_DECLARE(
+        argparse
+        GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+        GIT_TAG v2.9
+)
 
-target_link_libraries(media_agent PRIVATE ${GST_LIBRARIES})
+FETCHCONTENT_DECLARE(
+        boost
+        GIT_REPOSITORY https://github.com/boostorg/boost.git
+        GIT_TAG boost-1.82.0
+)
 
+FETCHCONTENT_MAKEAVAILABLE(httplib argparse boost expected)
+
+
+set(FFMPEG_HOME "${CMAKE_CURRENT_LIST_DIR}/thirdparty/ffmpeg_build")
+set(FFMPEG_INCLUDE_DIRS "${FFMPEG_HOME}/include")
+set(FFMPEG_LIBRARY_DIRS "${FFMPEG_HOME}/lib")
+set(FFMPEG_LIBRARIES avcodec avdevice avfilter avformat avutil postproc swresample swscale)
+
+set(TL_EXPECTED_HOME "${CMAKE_CURRENT_LIST_DIR}/thirdparty/expected")
+set(TL_EXPECTED_INCLUDE_DIRS "${TL_EXPECTED_HOME}/include")
 
 add_subdirectory(playground)
