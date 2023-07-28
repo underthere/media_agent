@@ -4,8 +4,6 @@ project("media_agent" VERSION 0.0 LANGUAGES CXX)
 # set cxx version to 20
 set(CMAKE_CXX_STANDARD 23)
 
-file (GLOB srcs sources/*.cpp)
-
 include(FetchContent)
 
 FETCHCONTENT_DECLARE(
@@ -26,7 +24,7 @@ FETCHCONTENT_DECLARE(
         GIT_TAG boost-1.82.0
 )
 
-FETCHCONTENT_MAKEAVAILABLE(httplib argparse boost expected)
+FETCHCONTENT_MAKEAVAILABLE(httplib argparse boost)
 
 
 set(FFMPEG_HOME "${CMAKE_CURRENT_LIST_DIR}/thirdparty/ffmpeg_build")
@@ -38,3 +36,4 @@ set(TL_EXPECTED_HOME "${CMAKE_CURRENT_LIST_DIR}/thirdparty/expected")
 set(TL_EXPECTED_INCLUDE_DIRS "${TL_EXPECTED_HOME}/include")
 
 add_subdirectory(playground)
+add_subdirectory(media_agent)

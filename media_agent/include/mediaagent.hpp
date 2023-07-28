@@ -2,11 +2,11 @@
 // Created by underthere on 2023/6/1.
 //
 
-#ifndef MEDIA_AGENT_MEDIAAGENT_H
-#define MEDIA_AGENT_MEDIAAGENT_H
+#ifndef MEDIA_AGENT_MEDIAAGENT_HPP
+#define MEDIA_AGENT_MEDIAAGENT_HPP
 
-#include "expected.h"
-#include "media_common.h"
+#include "media_common.hpp"
+#include "tl/expected.hpp"
 
 namespace MA {
 class MediaAgent {
@@ -75,4 +75,4 @@ class MediaAgent {
 };
 }  // namespace MA
 
-#endif  // MEDIA_AGENT_MEDIAAGENT_H
+#endif  // MEDIA_AGENT_MEDIAAGENT_HPP

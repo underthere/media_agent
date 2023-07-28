@@ -2,8 +2,8 @@
 // Created by underthere on 2023/6/1.
 //
 
-#ifndef MEDIA_AGENT_MEDIA_COMMON_H
-#define MEDIA_AGENT_MEDIA_COMMON_H
+#ifndef MEDIA_AGENT_MEDIA_COMMON_HPP
+#define MEDIA_AGENT_MEDIA_COMMON_HPP
 
 #include <string>
 
@@ -57,4 +57,4 @@ struct MediaDescription {
 };
 }  // namespace MA
 
-#endif  // MEDIA_AGENT_MEDIA_COMMON_H
+#endif  // MEDIA_AGENT_MEDIA_COMMON_HPP

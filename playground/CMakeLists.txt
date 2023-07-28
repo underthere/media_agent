@@ -2,29 +2,12 @@ cmake_minimum_required(VERSION 3.25)
 project("playground" VERSION 0.0 LANGUAGES CXX)
 
 # set cxx version to 20
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 
-include(FetchContent)
-FETCHCONTENT_DECLARE(
-        httplib
-        GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-        GIT_TAG v0.13.1
-)
+add_executable(play_asio play_asio.cpp play_asio.cpp)
+target_link_libraries(play_asio PRIVATE argparse::argparse Boost::asio Boost::signals2)
 
-FETCHCONTENT_DECLARE(
-        argparse
-        GIT_REPOSITORY https://github.com/p-ranav/argparse.git
-        GIT_TAG v2.9
-)
-
-FETCHCONTENT_MAKEAVAILABLE(httplib argparse)
-
-add_executable(playground main.cpp play_ffmpeg.cpp)
-target_link_libraries(playground httplib::httplib)
-
-add_executable(pc pc_test.cpp)
-
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(ffmpeg REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale libswresample)
-add_executable(play_ffmpeg play_ffmpeg.cpp)
-target_link_libraries(play_ffmpeg PkgConfig::ffmpeg argparse::argparse)
+add_executable(play_signal play_signal.cpp)
+target_include_directories(play_signal PRIVATE ${FFMPEG_INCLUDE_DIRS})
+target_link_directories(play_signal PRIVATE ${FFMPEG_LIBRARY_DIRS})
+target_link_libraries(play_signal PRIVATE Boost::signals2 Boost::format ${FFMPEG_LIBRARIES})
