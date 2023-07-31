@@ -16,7 +16,8 @@ extern "C" {
 
 namespace MA {
 class MediaWriter {
-  explicit MediaWriter(boost::asio::io_context &ioc, MediaDescription desc);
+ public:
+  explicit MediaWriter(boost::asio::io_context &ioc, const MediaDescription &desc);
   virtual ~MediaWriter();
 
   virtual auto start(boost::signals2::signal<void(AVPacket*)> &) -> tl::expected<void, Error>;

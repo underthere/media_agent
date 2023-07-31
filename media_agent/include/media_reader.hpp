@@ -25,6 +25,8 @@ class MediaReader {
   virtual auto start() -> tl::expected<void, Error>;
   virtual auto read() -> tl::expected<AVPacket *, Error>;
 
+  boost::signals2::signal<void(AVPacket *)> sig_new_packet_;
+
  protected:
   virtual auto read_handler(AVPacket *delayed_pkt = nullptr) -> void;
  private:
@@ -35,7 +37,6 @@ class MediaReader {
   std::int64_t start_time_;
   boost::asio::steady_timer timer_;
   boost::asio::io_context &ioc_;
-  boost::signals2::signal<void(AVPacket *)> sig_new_packet_;
 };
 
 }  // namespace MA

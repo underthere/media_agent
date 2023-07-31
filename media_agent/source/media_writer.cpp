@@ -11,7 +11,7 @@
 
 namespace MA {
 
-MediaWriter::MediaWriter(boost::asio::io_context& ioc, MediaDescription desc) : ioc_(ioc), desc_(std::move(desc)) {}
+MediaWriter::MediaWriter(boost::asio::io_context& ioc, const MediaDescription &desc) : ioc_(ioc), desc_(std::move(desc)) {}
 MediaWriter::~MediaWriter() {}
 
 auto MediaWriter::start(boost::signals2::signal<void(AVPacket*)> &sig) -> tl::expected<void, Error> {
