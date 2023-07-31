@@ -2,10 +2,6 @@
 // Created by underthere on 2023/7/28.
 //
 
-extern "C" {
-#include "libavutil/avutil.h"
-#include "libavutil/time.h"
-};
 
 #include <utility>
 
@@ -30,13 +26,16 @@ auto MediaReader::read_handler(AVPacket *delayed_pkt) -> void {
     sig_new_packet_(delayed_pkt);
   }
   auto pkt_result = read();
-  if (!pkt_result.has_value()) return;
+  if (!pkt_result.has_value()) {
+    std::cout << "read failed: " << pkt_result.error().message << std::endl;
+    return;
+  }
   auto pkt = pkt_result.value();
   if (pkt->stream_index != best_video_index_) {
     av_packet_free(&pkt);
     read_handler();
   }
-  auto now = av_gettime();
+  auto now = av_gettime() - start_time_;
   if (pkt->dts == 0) pkt->dts = pkt->pts;
   auto dts = timebase2us(fctx_->streams[best_video_index_]->time_base) * pkt->dts;
   if (dts > now) {
@@ -49,6 +48,8 @@ auto MediaReader::read_handler(AVPacket *delayed_pkt) -> void {
       }
       read_handler(pkt);
     });
+  } else {
+    read_handler(pkt);
   }
 }
 
@@ -67,6 +68,7 @@ auto MediaReader::start() -> tl::expected<void, Error> {
   }
   start_time_ = av_gettime();
   read_handler();
+  return {};
 }
 
 MediaReader::~MediaReader() {

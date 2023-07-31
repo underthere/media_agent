@@ -7,6 +7,8 @@
 
 extern "C" {
 #include "libavformat/avformat.h"
+#include "libavutil/avutil.h"
+#include "libavutil/time.h"
 }
 #include "boost/asio.hpp"
 #include "boost/signals2.hpp"
