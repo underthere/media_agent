@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.18)
 project("media_agent" VERSION 0.0 LANGUAGES CXX)
 
 # set cxx version to 20

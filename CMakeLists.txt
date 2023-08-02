@@ -1,16 +1,12 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.18)
 project("media_agent" VERSION 0.0 LANGUAGES CXX)
 
 # set cxx version to 20
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
+
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
 
 include(FetchContent)
-
-FETCHCONTENT_DECLARE(
-        httplib
-        GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-        GIT_TAG v0.13.1
-)
 
 FETCHCONTENT_DECLARE(
         argparse
@@ -24,13 +20,18 @@ FETCHCONTENT_DECLARE(
         GIT_TAG boost-1.82.0
 )
 
-FETCHCONTENT_MAKEAVAILABLE(httplib argparse boost)
+FETCHCONTENT_MAKEAVAILABLE(argparse boost)
 
-
-set(FFMPEG_HOME "${CMAKE_CURRENT_LIST_DIR}/thirdparty/ffmpeg_build")
+if (DEFINED ENV{ROCKCHIP})
+    message(INFO "build on rockchip")
+    set(FFMPEG_HOME "${CMAKE_CURRENT_LIST_DIR}" /thirdparty/ffmpeg_rk_build)
+    set(FFMPEG_LIBRARIES avcodec avdevice avfilter avformat avutil postproc swresample swscale drm rockchip_mpp)
+else()
+    set(FFMPEG_HOME "${CMAKE_CURRENT_LIST_DIR}/thirdparty/ffmpeg_build")
+    set(FFMPEG_LIBRARIES avcodec avdevice avfilter avformat avutil postproc swresample swscale)
+endif()
 set(FFMPEG_INCLUDE_DIRS "${FFMPEG_HOME}/include")
 set(FFMPEG_LIBRARY_DIRS "${FFMPEG_HOME}/lib")
-set(FFMPEG_LIBRARIES avcodec avdevice avfilter avformat avutil postproc swresample swscale)
 
 set(TL_EXPECTED_HOME "${CMAKE_CURRENT_LIST_DIR}/thirdparty/expected")
 set(TL_EXPECTED_INCLUDE_DIRS "${TL_EXPECTED_HOME}/include")
