@@ -4,3 +4,6 @@
 [submodule "thirdparty/expected"]
 	path = thirdparty/expected
 	url = https://github.com/TartanLlama/expected.git
+[submodule "thirdparty/ffmpeg-rk"]
+	path = thirdparty/ffmpeg-rk
+	url = https://github.com/jjm2473/ffmpeg-rk.git
