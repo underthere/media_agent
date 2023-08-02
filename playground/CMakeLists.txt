@@ -11,3 +11,9 @@ add_executable(play_signal play_signal.cpp)
 target_include_directories(play_signal PRIVATE ${FFMPEG_INCLUDE_DIRS})
 target_link_directories(play_signal PRIVATE ${FFMPEG_LIBRARY_DIRS})
 target_link_libraries(play_signal PRIVATE Boost::signals2 Boost::format ${FFMPEG_LIBRARIES})
+
+
+add_executable(play_rkmpp play_rkmpp.cpp)
+target_include_directories(play_rkmpp PRIVATE ${FFMPEG_INCLUDE_DIRS})
+target_link_directories(play_rkmpp PRIVATE ${FFMPEG_LIBRARY_DIRS})
+target_link_libraries(play_rkmpp PRIVATE ${FFMPEG_LIBRARIES})
