@@ -24,8 +24,10 @@ class MediaReader {
 
   virtual auto start() -> tl::expected<void, Error>;
   virtual auto read() -> tl::expected<AVPacket *, Error>;
+  virtual auto get_codec_par() -> std::optional<AVCodecParameters *>;
 
   boost::signals2::signal<void(AVPacket *)> sig_new_packet_;
+  boost::signals2::signal<void(AVCodecParameters *)> sig_codec_par_;
 
  protected:
   virtual auto read_handler(AVPacket *delayed_pkt = nullptr) -> void;

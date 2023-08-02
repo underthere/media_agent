@@ -66,6 +66,7 @@ auto MediaReader::start() -> tl::expected<void, Error> {
   if (best_video_index_ < 0) {
     return tl::unexpected<Error>({0, std::string("av_find_best_stream failed:") + std::string(av_err2str(ret))});
   }
+  sig_codec_par_(fctx_->streams[best_video_index_]->codecpar);
   start_time_ = av_gettime();
   read_handler();
   return {};
@@ -79,6 +80,11 @@ MediaReader::~MediaReader() {
 
 MediaReader::MediaReader(boost::asio::io_context &ioc, MediaDescription desc)
     : ioc_(ioc), desc_(std::move(desc)), fctx_(nullptr), best_video_index_(-1), start_time_(0), timer_(ioc) {
+}
+auto MediaReader::get_codec_par() -> std::optional<AVCodecParameters *> {
+  if (!fctx_ || best_video_index_ < 0) return std::nullopt;
+
+  return fctx_->streams[best_video_index_]->codecpar;
 }
 
 }  // namespace MA

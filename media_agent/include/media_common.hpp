@@ -11,6 +11,12 @@ namespace MA {
 
 using uuid_t = std::string;
 
+enum class HardwareAccelerator {
+  NONE,
+  VAAPI,
+  RKMPP
+};
+
 struct Error {
   int code;
   std::string message;
@@ -34,7 +40,17 @@ enum class PixelFormat {
 };
 
 enum class CodecFormat {
+  H264,
+  H265,
+  AV1
+};
 
+enum class Profile {
+  UNKNOWN,
+};
+
+enum class Level {
+  UNKNOWN,
 };
 
 struct VideoDescription {
@@ -44,6 +60,9 @@ struct VideoDescription {
 
   PixelFormat pixel_format;
   CodecFormat codec_format;
+  Profile profile;
+  Level level;
+  std::uint64_t bitrate; // in bps
 };
 
 struct AudioDescription {};

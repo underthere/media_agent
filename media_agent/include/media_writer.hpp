@@ -24,7 +24,10 @@ class MediaWriter {
 
   virtual auto on_new_packet(AVPacket*) -> void;
 
+  virtual auto set_codec_par(const AVCodecParameters*) -> void;
+
  private:
+  AVCodecParameters *codec_par_;
   MediaDescription desc_;
   AVFormatContext *fctx_;
   boost::asio::io_context &ioc_;

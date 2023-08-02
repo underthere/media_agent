@@ -8,8 +8,7 @@ set(EXE "media_agent")
 
 file(GLOB source_files source/*.cpp include/*.hpp)
 
-add_executable(${EXE} ${source_files}
-        include/av_misc.hpp)
+add_executable(${EXE} ${source_files})
 target_include_directories(${EXE} PRIVATE include)
 target_include_directories(${EXE} PUBLIC ${TL_EXPECTED_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIRS})
 target_link_directories(${EXE} PUBLIC ${FFMPEG_LIBRARY_DIRS})
