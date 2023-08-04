@@ -64,21 +64,21 @@ int main() {
     return 1;
   }
 
-  enc_ctx->width = in_stream->codecpar->width;
-  enc_ctx->height = in_stream->codecpar->height;
-  enc_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-  enc_ctx->framerate = in_stream->avg_frame_rate;
-  enc_ctx->profile = FF_PROFILE_H264_CONSTRAINED_BASELINE;
-  enc_ctx->bit_rate = 2 * 1000 * 1000;
-  enc_ctx->time_base = in_stream->time_base;
-  if (out_fctx->oformat->flags & AVFMT_GLOBALHEADER) {
-    enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-  }
 
   ret = avcodec_open2(dec_ctx, decoder, nullptr);
   if (ret < 0) {
     std::cout << "open decoder failed: " << av_err2str(ret) << std::endl;
     return 1;
+  }
+
+  enc_ctx->width = dec_ctx->width;
+  enc_ctx->height = dec_ctx->height;
+  enc_ctx->pix_fmt = dec_ctx->pix_fmt;
+  enc_ctx->time_base = {1, 25};
+  enc_ctx->framerate = dec_ctx->framerate;
+  enc_ctx->profile = FF_PROFILE_H264_BASELINE;
+  if (out_fctx->oformat->flags & AVFMT_GLOBALHEADER) {
+    enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
   }
 
   ret = avcodec_open2(enc_ctx, encoder, nullptr);
@@ -94,7 +94,7 @@ int main() {
   }
 
   AVPacket in_pkt, out_pkt;
-  AVFrame frame;
+  AVFrame *pframe = av_frame_alloc();
 
   bool output_opened = false;
 
@@ -114,7 +114,7 @@ int main() {
         break;
       }
     }
-    ret = avcodec_receive_frame(dec_ctx, &frame);
+    ret = avcodec_receive_frame(dec_ctx, pframe);
     if (ret < 0) {
       if (ret == AVERROR(EAGAIN))
         continue;
