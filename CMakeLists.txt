@@ -20,7 +20,25 @@ FETCHCONTENT_DECLARE(
         GIT_TAG boost-1.82.0
 )
 
-FETCHCONTENT_MAKEAVAILABLE(argparse boost)
+FETCHCONTENT_DECLARE(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 10.0.0
+)
+
+#FETCHCONTENT_DECLARE(
+#        cpprestsdk
+#        GIT_REPOSITORY https://github.com/microsoft/cpprestsdk.git
+#        GIT_TAG v2.10.18
+#)
+
+FETCHCONTENT_DECLARE(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.12.0
+)
+
+FETCHCONTENT_MAKEAVAILABLE(argparse boost fmt spdlog)
 
 if (DEFINED ENV{ROCKCHIP})
     message(INFO "build on rockchip")

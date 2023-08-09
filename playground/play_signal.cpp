@@ -2,8 +2,8 @@
 // Created by underthere on 2023/7/27.
 //
 
-#include <chrono>
 #include <iostream>
+#include <thread>
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -15,7 +15,7 @@ extern "C" {
 #include "boost/signals2.hpp"
 
 struct source_reader {
-  AVFormatContext *fmt_ctx;
+  AVFormatContext *fmt_ctx = nullptr;
   AVStream *vstream;
   std::int8_t vs_index;
 
@@ -42,19 +42,40 @@ struct source_reader {
     return 0;
   }
 
-  const AVCodecParameters *get_codecpar() const {
+  auto get_codecpar() const -> const AVCodecParameters * {
     if (!vstream) return nullptr;
     return vstream->codecpar;
+  }
+
+  auto read_all() -> void {
+    while (true) {
+      auto pkt = read_once();
+      if (!pkt) {
+        break;
+      }
+      new_packet(pkt);
+    }
+  }
+
+  auto read_once() -> AVPacket * {
+    auto pkt = av_packet_alloc();
+    int ret = av_read_frame(fmt_ctx, pkt);
+    if (ret < 0) {
+      av_packet_free(&pkt);
+      std::cout << "read frame failed: " << av_err2str(ret) << std::endl;
+      return nullptr;
+    }
+    return pkt;
   }
 
   boost::signals2::signal<void(AVPacket *)> new_packet;
 };
 
 struct decoder {
-  AVCodecContext *codec_ctx;
+  AVCodecContext *codec_ctx = nullptr;
   AVBufferRef *hw_device_ctx;
 
-  int init(const std::string name, AVCodecParameters *codecpar) {
+  int init(const std::string name, const AVCodecParameters *codecpar) {
     const auto decoder = avcodec_find_decoder_by_name(name.c_str());
     if (!decoder) {
       std::cout << "find decoder failed" << std::endl;
@@ -84,7 +105,16 @@ struct decoder {
 
   boost::signals2::signal<void(AVFrame *)> new_frame;
   void slot_new_packet(AVPacket *pkt) {
+    std::cout << "new packet" << std::endl;
+    if (!avcodec_is_open(codec_ctx)) {
+      int ret = avcodec_open2(codec_ctx, avcodec_find_decoder_by_name("h264_rkmpp"), nullptr);
+      if (ret < 0) {
+        std::cout << "open decoder failed: " << av_err2str(ret) << std::endl;
+        return;
+      }
+    }
     int ret = avcodec_send_packet(codec_ctx, pkt);
+    if (ret == AVERROR(EAGAIN)) return;
     if (ret < 0) {
       std::cout << "send packet failed: " << av_err2str(ret) << std::endl;
       return;
@@ -103,12 +133,13 @@ struct decoder {
 };
 
 struct encoder {
-  AVCodecContext *codec_ctx;
+  AVCodecContext *codec_ctx = nullptr;
   AVBufferRef *hw_device_ctx;
+  std::optional<AVCodecContext *> decoder;
 
   boost::signals2::signal<void(AVPacket *)> new_packet;
 
-  int init(const std::string &name, AVCodecParameters *codecpar) {
+  int init(const std::string &name, const AVCodecParameters *codecpar) {
     const auto encoder = avcodec_find_encoder_by_name(name.c_str());
     if (!encoder) {
       std::cout << "find encoder failed" << std::endl;
@@ -119,14 +150,31 @@ struct encoder {
       std::cout << "alloc encoder context failed" << std::endl;
       return -1;
     }
-    avcodec_parameters_to_context(codec_ctx, codecpar);
+    if (codecpar) avcodec_parameters_to_context(codec_ctx, codecpar);
+    codec_ctx->width = 1920;
+    codec_ctx->height = 1080;
+    codec_ctx->level = 41;
+    codec_ctx->profile = FF_PROFILE_H264_BASELINE;
+    codec_ctx->pix_fmt = AV_PIX_FMT_DRM_PRIME;
+    codec_ctx->time_base = {1, 24};
+
     return 0;
   }
 
   void slot_new_frame(AVFrame *frame) {
+    std::cout << "new frame" << std::endl;
     if (avcodec_is_open(codec_ctx) <= 0) {
+      if (decoder.has_value()) {
+        auto dec_ctx = decoder.value();
+        if (dec_ctx->hw_frames_ctx) {
+          codec_ctx->hw_frames_ctx = av_buffer_ref(dec_ctx->hw_frames_ctx);
+        }
+      }
       codec_ctx->pix_fmt = static_cast<AVPixelFormat>(frame->format);
-      int ret = avcodec_open2(codec_ctx, nullptr, nullptr);
+      codec_ctx->width = frame->width;
+      codec_ctx->height = frame->height;
+      const auto encoder = avcodec_find_encoder_by_name("h264_rkmpp");
+      int ret = avcodec_open2(codec_ctx, encoder, nullptr);
       if (ret < 0) {
         std::cout << "open encoder failed: " << av_err2str(ret) << std::endl;
         return;
@@ -151,10 +199,15 @@ struct encoder {
 };
 
 struct output_writer {
-  AVFormatContext *output_ctx;
+  AVFormatContext *output_ctx = nullptr;
+  bool initialized = false;
+  std::string uri_;
+  AVCodecContext *codec_ctx = nullptr;
+  AVCodecParameters *par = nullptr;
 
   int init(const std::string &uri, const std::string &format) {
     int ret;
+    uri_ = uri;
     ret = avformat_alloc_output_context2(&output_ctx, nullptr, format.c_str(), uri.c_str());
     if (ret < 0) {
       std::cout << "alloc output context failed: " << av_err2str(ret) << std::endl;
@@ -164,7 +217,38 @@ struct output_writer {
   }
 
   auto on_new_packet(AVPacket *pkt) -> void {
-    //    std::cout << "new packet " << pkt->pts << std::endl;
+    int ret;
+    if (!initialized) {
+      if (!codec_ctx && !par) {
+        std::cout << "no codec context" << std::endl;
+        return;
+      }
+
+      auto stream = avformat_new_stream(output_ctx, nullptr);
+      stream->time_base = {1, 24};
+      if (codec_ctx) {
+        avcodec_parameters_from_context(stream->codecpar, codec_ctx);
+      } else {
+        avcodec_parameters_copy(stream->codecpar, par);
+      }
+      stream->codecpar->codec_tag = 0;
+
+      ret = avio_open(&output_ctx->pb, uri_.c_str(), AVIO_FLAG_WRITE);
+      if (ret < 0) {
+        std::cout << "open output failed: " << av_err2str(ret) << std::endl;
+        return;
+      }
+      ret = avformat_write_header(output_ctx, nullptr);
+      if (ret < 0) {
+        std::cout << "write header failed: " << av_err2str(ret) << std::endl;
+        return;
+      }
+    }
+    pkt->stream_index = 0;
+    ret = av_interleaved_write_frame(output_ctx, pkt);
+    if (ret < 0) {
+      std::cout << "write pkt failed:" << av_err2str(ret) << std::endl;
+    }
     av_packet_unref(pkt);
   }
 };
@@ -180,11 +264,41 @@ auto main() -> int {
   avformat_network_init();
 
   source_reader reader;
-  if (reader.open("../../test.flv") < 0) {
+  if (reader.open("/home/pi/workdir/media_agent/test.flv") < 0) {
     return 1;
   }
 
+  decoder decoder;
+  decoder.init("h264_rkmpp", reader.get_codecpar());
 
+  encoder encoder;
+  encoder.decoder = decoder.codec_ctx;
+  encoder.init("h264_rkmpp", nullptr);
+
+  output_writer writer;
+  writer.init("test_out.flv", "flv");
+
+  if (writer.output_ctx->oformat->flags & AVFMT_GLOBALHEADER) {
+    encoder.codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+  }
+  writer.codec_ctx = encoder.codec_ctx;
+
+  reader.new_packet.connect([&decoder](AVPacket *pkt) { decoder.slot_new_packet(pkt); });
+  decoder.new_frame.connect([&encoder](AVFrame *frame) { encoder.slot_new_frame(frame); });
+  encoder.new_packet.connect([&writer](AVPacket *pkt) { writer.on_new_packet(pkt); });
+
+  std::thread t([&reader]() {
+    while (true) {
+      auto pkt = reader.read_once();
+      if (pkt) {
+        reader.new_packet(pkt);
+      } else {
+        break;
+      }
+    }
+  });
+
+  t.join();
 
   avformat_network_deinit();
 }
