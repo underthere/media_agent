@@ -26,11 +26,11 @@ FETCHCONTENT_DECLARE(
         GIT_TAG 10.0.0
 )
 
-#FETCHCONTENT_DECLARE(
-#        cpprestsdk
-#        GIT_REPOSITORY https://github.com/microsoft/cpprestsdk.git
-#        GIT_TAG v2.10.18
-#)
+FETCHCONTENT_DECLARE(
+        async_simple
+        GIT_REPOSITORY https://github.com/alibaba/async_simple.git
+        GIT_TAG 1.1
+)
 
 FETCHCONTENT_DECLARE(
         spdlog
@@ -38,7 +38,7 @@ FETCHCONTENT_DECLARE(
         GIT_TAG v1.12.0
 )
 
-FETCHCONTENT_MAKEAVAILABLE(argparse boost fmt spdlog)
+FETCHCONTENT_MAKEAVAILABLE(argparse boost fmt spdlog async_simple)
 
 if (DEFINED ENV{ROCKCHIP})
     message(INFO "build on rockchip")

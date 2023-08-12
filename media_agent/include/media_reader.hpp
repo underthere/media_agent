@@ -5,40 +5,45 @@
 #ifndef MEDIA_AGENT_MEDIA_READER_HPP
 #define MEDIA_AGENT_MEDIA_READER_HPP
 
+#include <chrono>
+
 extern "C" {
 #include "libavformat/avformat.h"
 #include "libavutil/avutil.h"
 #include "libavutil/time.h"
 }
-#include "boost/asio.hpp"
+#include "async_simple/coro/Lazy.h"
 #include "boost/signals2.hpp"
-#include "media_common.hpp"
 #include "tl/expected.hpp"
+
+#include "media_common.hpp"
+
+using namespace std::chrono_literals;
+using namespace async_simple;
 
 namespace MA {
 
 class MediaReader {
  public:
-  explicit MediaReader(boost::asio::io_context &ioc, MediaDescription desc);
+  explicit MediaReader(MediaDescription desc);
   virtual ~MediaReader();
 
-  virtual auto start() -> tl::expected<void, Error>;
-  virtual auto read() -> tl::expected<AVPacket *, Error>;
-  virtual auto get_codec_par() -> std::optional<AVCodecParameters *>;
+  auto run() -> coro::Lazy<tl::expected<void, Error>>;
+
+  auto read() -> tl::expected<AVPacket *, Error>;
 
   boost::signals2::signal<void(AVPacket *)> sig_new_packet_;
-  boost::signals2::signal<void(AVCodecParameters *)> sig_codec_par_;
+  // boost::signals2::signal<void(AVCodecParameters *)> sig_codec_par_;
 
- protected:
-  virtual auto read_handler(AVPacket *delayed_pkt = nullptr) -> void;
  private:
+  bool running = false;
+  bool media_opened_ = false;
+  std::chrono::duration<uint64_t, std::micro> retry_interval_ = 1000ms;
   MediaDescription desc_;
   AVFormatContext *fctx_;
   int best_video_index_;
 
-  std::int64_t start_time_;
-  boost::asio::steady_timer timer_;
-  boost::asio::io_context &ioc_;
+  std::int64_t start_time_{};
 };
 
 }  // namespace MA

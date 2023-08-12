@@ -2,74 +2,80 @@
 // Created by underthere on 2023/7/28.
 //
 
+#include "media_reader.hpp"
 
 #include <utility>
 
+#include "async_simple/coro/Sleep.h"
 #include "av_misc.hpp"
-#include "media_reader.hpp"
-#include <iostream>
+#include "spdlog/spdlog.h"
+
+using namespace async_simple;
 
 namespace MA {
 
 auto MediaReader::read() -> tl::expected<AVPacket *, Error> {
+  static std::unordered_map<int, ErrorType> error_map{
+      {AVERROR_EOF, ErrorType::EOS},
+  };
+
   AVPacket *pkt = av_packet_alloc();
   int ret = av_read_frame(fctx_, pkt);
   if (ret < 0) {
-    av_packet_free(&pkt);
-    return tl::unexpected<Error>({0, std::string("av_read_frame failed:") + std::string(av_err2str(ret))});
+    if (error_map.contains(ret)) {
+      return tl::unexpected<Error>({error_map[ret], std::string("av_read_frame failed:") + std::string(av_err2str(ret))});
+    }
+    return tl::unexpected<Error>({ErrorType::UNKNOWN, std::string("av_read_frame failed:") + std::string(av_err2str(ret))});
   }
   return pkt;
 }
 
-auto MediaReader::read_handler(AVPacket *delayed_pkt) -> void {
-  if (delayed_pkt != nullptr) {
-    sig_new_packet_(delayed_pkt);
-  }
-  auto pkt_result = read();
-  if (!pkt_result.has_value()) {
-    std::cout << "read failed: " << pkt_result.error().message << std::endl;
-    return;
-  }
-  auto pkt = pkt_result.value();
-  if (pkt->stream_index != best_video_index_) {
-    av_packet_free(&pkt);
-    read_handler();
-  }
-  auto now = av_gettime() - start_time_;
-  if (pkt->dts == 0) pkt->dts = pkt->pts;
-  auto dts = timebase2us(fctx_->streams[best_video_index_]->time_base) * pkt->dts;
-  if (dts > now) {
-    std::cout << "sleep for " << (dts - now) / 1000 << "ms" << std::endl;
-    timer_.expires_after(std::chrono::microseconds(dts - now));
-    timer_.async_wait([this, pkt](const boost::system::error_code &ec) {
-      if (ec) {
-        std::cout << "timer error: " << ec.message() << std::endl;
-        return;
+auto MediaReader::run() -> coro::Lazy<tl::expected<void, Error>> {
+  running = true;
+  int ret = 0;
+  while (running) {
+    if (!media_opened_) {
+      bool success = true;
+      ret = avformat_open_input(&fctx_, desc_.uri.c_str(), nullptr, nullptr);
+      if (ret != 0) {
+        spdlog::warn("open {} failed:{}", desc_.uri, av_err2str(ret));
       }
-      read_handler(pkt);
-    });
-  } else {
-    read_handler(pkt);
-  }
-}
+      success &= ret != 0;
 
-auto MediaReader::start() -> tl::expected<void, Error> {
-  int ret = avformat_open_input(&fctx_, desc_.uri.c_str(), nullptr, nullptr);
-  if (ret < 0) {
-    return tl::unexpected<Error>({0, std::string("avformat_open_input failed:") + std::string(av_err2str(ret))});
+      this->best_video_index_ = av_find_best_stream(fctx_, AVMEDIA_TYPE_VIDEO, 1, -1, nullptr, 0);
+      spdlog::info("{} find video stream index:{}", desc_.uri, best_video_index_);
+      if (this->best_video_index_ < 0) {
+        avformat_close_input(&fctx_);
+        spdlog::warn("{} find video stream failed", desc_.uri);
+      }
+      success &= best_video_index_ >= 0;
+      media_opened_ = success;
+      if (!media_opened_) co_await coro::sleep(retry_interval_);
+      else start_time_ = av_gettime();
+      continue;
+    }
+    auto result = read();
+    if (result.has_value()) {
+      auto now = av_gettime() - start_time_;
+      auto pkt = result.value();
+      if (pkt->dts == 0) pkt->dts = pkt->pts;
+      auto dts = timebase2us(fctx_->streams[best_video_index_]->time_base) * pkt->dts;
+      if (dts > now) {
+        spdlog::trace("sleep for {} ms", (dts - now) / 1000);
+        co_await coro::sleep(std::chrono::microseconds(dts - now));
+      }
+      sig_new_packet_(result.value());
+    } else {
+      if (result.error().code == ErrorType::EOS) {
+        spdlog::info("read {} eos", desc_.uri);
+        avformat_close_input(&fctx_);
+        media_opened_ = false;
+      }
+    }
   }
-  ret = avformat_find_stream_info(fctx_, nullptr);
-  if (ret < 0) {
-    return tl::unexpected<Error>({0, std::string("avformat_find_stream_info failed:") + std::string(av_err2str(ret))});
-  }
-  best_video_index_ = av_find_best_stream(fctx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
-  if (best_video_index_ < 0) {
-    return tl::unexpected<Error>({0, std::string("av_find_best_stream failed:") + std::string(av_err2str(ret))});
-  }
-  sig_codec_par_(fctx_->streams[best_video_index_]->codecpar);
-  start_time_ = av_gettime();
-  read_handler();
-  return {};
+  avformat_close_input(&fctx_);
+  media_opened_ = false;
+  co_return tl::expected<void, Error>({});
 }
 
 MediaReader::~MediaReader() {
@@ -78,13 +84,6 @@ MediaReader::~MediaReader() {
   }
 }
 
-MediaReader::MediaReader(boost::asio::io_context &ioc, MediaDescription desc)
-    : ioc_(ioc), desc_(std::move(desc)), fctx_(nullptr), best_video_index_(-1), start_time_(0), timer_(ioc) {
-}
-auto MediaReader::get_codec_par() -> std::optional<AVCodecParameters *> {
-  if (!fctx_ || best_video_index_ < 0) return std::nullopt;
-
-  return fctx_->streams[best_video_index_]->codecpar;
-}
+MediaReader::MediaReader(MediaDescription desc) : desc_(std::move(desc)), fctx_(nullptr), best_video_index_(-1), start_time_(0) {}
 
 }  // namespace MA

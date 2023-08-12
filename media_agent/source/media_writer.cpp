@@ -16,23 +16,23 @@ auto MediaWriter::start(boost::signals2::signal<void(AVPacket*)>& sig) -> tl::ex
   int ret;
   avformat_alloc_output_context2(&fctx_, nullptr, "flv", desc_.uri.c_str());
   if (!fctx_) {
-    return tl::make_unexpected(Error{.code = -1, .message = "failed to alloc output context"});
+    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "failed to alloc output context"});
   }
   auto stream = avformat_new_stream(fctx_, nullptr);
   if (codec_par_) {
     avcodec_parameters_copy(stream->codecpar, codec_par_);
   } else {
-    return tl::make_unexpected(Error{.code = -1, .message = "no codec par"});
+    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "no codec par"});
   }
 
   ret = avio_open2(&fctx_->pb, desc_.uri.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
   if (ret < 0) {
-    return tl::make_unexpected(Error{.code = -1, .message = "failed to open output file"});
+    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "failed to open output file"});
   }
 
   ret = avformat_write_header(fctx_, nullptr);
   if (ret < 0) {
-    return tl::make_unexpected(Error{.code = -1, .message = "failed to write header"});
+    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "failed to write header"});
   }
 
   sig.connect([this](AVPacket* pkt) { on_new_packet(pkt); });

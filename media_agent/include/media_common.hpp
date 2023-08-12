@@ -17,13 +17,15 @@ enum class HardwareAccelerator {
   RKMPP
 };
 
-struct Error {
-  int code;
-  std::string message;
+enum class ErrorType {
+  EOS = -1,
+  OK = 0,
+  UNKNOWN = 9999,
 };
 
-enum class MAError {
-
+struct Error {
+  ErrorType code;
+  std::string message;
 };
 
 enum class MediaProtocol {

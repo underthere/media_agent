@@ -13,12 +13,11 @@ auto Decoder::start() -> tl::expected<void, Error> {
   if (hw_ == HardwareAccelerator::VAAPI) {
     auto ret = av_hwdevice_ctx_create(&hw_device_ctx_, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr, 0);
     if (ret < 0) {
-      return tl::make_unexpected(Error{.code = ret, .message = "Failed to create VAAPI device context"});
+      return tl::make_unexpected(Error{.code = ErrorType::UNKNOWN, .message = "Failed to create VAAPI device context"});
     }
 
     auto type = av_hwdevice_find_type_by_name("vaapi");
     const auto decoder = avcodec_find_decoder_by_name("h264_vaapi");
-    const AVCodecHWConfig *cfg = avcodec_get_hw_config(decoder, i);
   }
   return {};
 }
