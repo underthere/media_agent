@@ -39,16 +39,22 @@ auto MediaReader::run() -> coro::Lazy<tl::expected<void, Error>> {
       ret = avformat_open_input(&fctx_, desc_.uri.c_str(), nullptr, nullptr);
       if (ret != 0) {
         spdlog::warn("open {} failed:{}", desc_.uri, av_err2str(ret));
+        success &= false;
       }
-      success &= ret != 0;
 
-      this->best_video_index_ = av_find_best_stream(fctx_, AVMEDIA_TYPE_VIDEO, 1, -1, nullptr, 0);
-      spdlog::info("{} find video stream index:{}", desc_.uri, best_video_index_);
-      if (this->best_video_index_ < 0) {
-        avformat_close_input(&fctx_);
-        spdlog::warn("{} find video stream failed", desc_.uri);
+      ret = avformat_find_stream_info(fctx_, nullptr);
+      if (ret < 0) {
+        spdlog::warn("find stream info {} failed:{}", desc_.uri, av_err2str(ret));
+        success &= false;
+      } else {
+        best_video_index_ = av_find_best_stream(fctx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+        spdlog::info("{} find video stream index:{}", desc_.uri, best_video_index_);
+        if (best_video_index_ < 0) {
+          avformat_close_input(&fctx_);
+          spdlog::warn("{} find video stream failed", desc_.uri);
+          success &= false;
+        }
       }
-      success &= best_video_index_ >= 0;
       media_opened_ = success;
       if (!media_opened_) co_await coro::sleep(retry_interval_);
       else start_time_ = av_gettime();
@@ -58,6 +64,7 @@ auto MediaReader::run() -> coro::Lazy<tl::expected<void, Error>> {
     if (result.has_value()) {
       auto now = av_gettime() - start_time_;
       auto pkt = result.value();
+      spdlog::debug("read {} packet {}", desc_.uri, pkt->pts);
       if (pkt->dts == 0) pkt->dts = pkt->pts;
       auto dts = timebase2us(fctx_->streams[best_video_index_]->time_base) * pkt->dts;
       if (dts > now) {
