@@ -6,6 +6,7 @@
 #define MEDIA_AGENT_MEDIA_COMMON_HPP
 
 #include <string>
+#include <optional>
 
 namespace MA {
 
