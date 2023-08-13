@@ -9,28 +9,30 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 
-#include "boost/asio.hpp"
+#include "async_simple/coro/Lazy.h"
 #include "boost/signals2.hpp"
 #include "media_common.hpp"
 #include "tl/expected.hpp"
 
+using namespace async_simple;
+
 namespace MA {
 class MediaWriter {
  public:
-  explicit MediaWriter(boost::asio::io_context &ioc, const MediaDescription &desc);
+  explicit MediaWriter(const MediaDescription &desc);
   virtual ~MediaWriter();
 
-  virtual auto start(boost::signals2::signal<void(AVPacket*)> &) -> tl::expected<void, Error>;
+  auto run() -> coro::Lazy<tl::expected<void, Error>>;
 
-  virtual auto on_new_packet(AVPacket*) -> void;
-
-  virtual auto set_codec_par(const AVCodecParameters*) -> void;
+  auto slot_new_packet(AVPacket *, const AVCodecParameters*) -> void;
 
  private:
-  AVCodecParameters *codec_par_;
+
+
+ private:
+  bool output_opened_ = false;
   MediaDescription desc_;
   AVFormatContext *fctx_;
-  boost::asio::io_context &ioc_;
 };
 }  // namespace MA
 

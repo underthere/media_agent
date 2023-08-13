@@ -28,3 +28,8 @@ add_executable(${EXE} rtmp_publisher.cpp)
 target_include_directories(${EXE} PRIVATE ${TL_EXPECTED_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIRS})
 target_link_directories(${EXE} PRIVATE ${FFMPEG_LIBRARY_DIRS})
 target_link_libraries(${EXE} PRIVATE ${FFMPEG_LIBRARIES} argparse::argparse fmt::fmt)
+
+
+set(EXE play_coro)
+add_executable(${EXE} play_coro.cpp)
+target_link_libraries(${EXE} PRIVATE async_simple fmt::fmt)

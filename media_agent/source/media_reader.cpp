@@ -71,7 +71,8 @@ auto MediaReader::run() -> coro::Lazy<tl::expected<void, Error>> {
         spdlog::trace("sleep for {} ms", (dts - now) / 1000);
         co_await coro::sleep(std::chrono::microseconds(dts - now));
       }
-      sig_new_packet_(result.value());
+      sig_new_packet_(pkt, get_current_codec_par());
+      av_packet_free(&pkt);
     } else {
       if (result.error().code == ErrorType::EOS) {
         spdlog::info("read {} eos", desc_.uri);
@@ -92,5 +93,10 @@ MediaReader::~MediaReader() {
 }
 
 MediaReader::MediaReader(MediaDescription desc) : desc_(std::move(desc)), fctx_(nullptr), best_video_index_(-1), start_time_(0) {}
+
+auto MediaReader::get_current_codec_par() -> const AVCodecParameters * {
+    if (fctx_ == nullptr || best_video_index_ < 0) return nullptr;
+    return fctx_->streams[best_video_index_]->codecpar;
+}
 
 }  // namespace MA

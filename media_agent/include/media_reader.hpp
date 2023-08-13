@@ -32,8 +32,11 @@ class MediaReader {
 
   auto read() -> tl::expected<AVPacket *, Error>;
 
-  boost::signals2::signal<void(AVPacket *)> sig_new_packet_;
+  boost::signals2::signal<void(AVPacket *, const AVCodecParameters* )> sig_new_packet_;
   // boost::signals2::signal<void(AVCodecParameters *)> sig_codec_par_;
+
+ private:
+  auto get_current_codec_par() -> const AVCodecParameters*;
 
  private:
   bool running = false;

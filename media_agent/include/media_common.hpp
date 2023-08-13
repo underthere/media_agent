@@ -5,18 +5,14 @@
 #ifndef MEDIA_AGENT_MEDIA_COMMON_HPP
 #define MEDIA_AGENT_MEDIA_COMMON_HPP
 
-#include <string>
 #include <optional>
+#include <string>
 
 namespace MA {
 
 using uuid_t = std::string;
 
-enum class HardwareAccelerator {
-  NONE,
-  VAAPI,
-  RKMPP
-};
+enum class HardwareAccelerator { NONE, VAAPI, RKMPP };
 
 enum class ErrorType {
   EOS = -1,
@@ -42,11 +38,7 @@ enum class PixelFormat {
   RGB24,
 };
 
-enum class CodecFormat {
-  H264,
-  H265,
-  AV1
-};
+enum class CodecFormat { H264, H265, AV1 };
 
 enum class Profile {
   UNKNOWN,
@@ -65,7 +57,7 @@ struct VideoDescription {
   CodecFormat codec_format;
   Profile profile;
   Level level;
-  std::uint64_t bitrate; // in bps
+  std::uint64_t bitrate;  // in bps
 };
 
 struct AudioDescription {};
@@ -75,7 +67,7 @@ struct MediaDescription {
   std::string uri;
   std::optional<VideoDescription> video_description;
   std::optional<AudioDescription> audio_description;
-  std::optional<void *> custom_description;
+  std::optional<void*> custom_description;
 };
 }  // namespace MA
 

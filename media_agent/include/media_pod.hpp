@@ -10,15 +10,20 @@
 #include <string>
 #include <unordered_map>
 
+#include "async_simple/coro/Lazy.h"
+#include "media_common.hpp"
+#include "media_reader.hpp"
+#include "media_writer.hpp"
 #include "tl/expected.hpp"
 
-#include "media_common.hpp"
-
-using MEDIA_READER_T = void;
-using MEDIA_WRITER_T = void;
-using MEDIA_TRANSOFRMER_T = void;
+using namespace async_simple;
 
 namespace MA {
+
+using MEDIA_READER_T = MediaReader;
+using MEDIA_WRITER_T = MediaWriter;
+using MEDIA_TRANSOFRMER_T = void;
+
 class MediaPod {
  private:
   std::string id_;
@@ -34,7 +39,8 @@ class MediaPod {
  public:
   explicit MediaPod(const std::string& id, const MediaDescription& desc);
   virtual ~MediaPod();
-  auto execute() -> tl::expected<void, Error>;
+  auto run() -> coro::Lazy<tl::expected<void, Error>>;
+  auto add_output(const uuid_t& id, const MediaDescription& desc) -> tl::expected<std::string, Error>;
 };
 }  // namespace MA
 

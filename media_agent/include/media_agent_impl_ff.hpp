@@ -5,8 +5,10 @@
 #ifndef MEDIA_AGENT_MEDIA_AGENT_IMPL_FF_HPP
 #define MEDIA_AGENT_MEDIA_AGENT_IMPL_FF_HPP
 
+#include <memory>
 #include "mediaagent.hpp"
 #include "media_pod.hpp"
+
 
 namespace MA {
 
@@ -23,7 +25,7 @@ class MediaAgentImplFF: MediaAgent {
   auto query(const uuid_t& id) -> tl::expected<void, Error> override;
 
  private:
-  std::unordered_map<uuid_t, MediaPod> media_pods_;
+  std::unordered_map<uuid_t, std::shared_ptr<MediaPod>> media_pods_;
 };
 
 }  // namespace MA

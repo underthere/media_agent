@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(EXE "media_agent")
 
-file(GLOB source_files source/*.cpp include/*.hpp)
+file(GLOB source_files source/*.cpp)
 
 add_executable(${EXE} ${source_files})
 target_include_directories(${EXE} PRIVATE include)

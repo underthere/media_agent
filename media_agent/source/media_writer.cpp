@@ -2,57 +2,83 @@
 // Created by underthere on 2023/7/31.
 //
 
+#include <unordered_map>
+
+#include "spdlog/spdlog.h"
+#include "av_misc.hpp"
 #include "media_writer.hpp"
 
-#include <iostream>
-#include <utility>
+using namespace async_simple;
 
 namespace MA {
 
-MediaWriter::MediaWriter(boost::asio::io_context& ioc, const MediaDescription& desc) : ioc_(ioc), desc_(std::move(desc)) {}
-MediaWriter::~MediaWriter() {}
+MediaWriter::MediaWriter(const MediaDescription& desc): desc_(desc) {}
 
-auto MediaWriter::start(boost::signals2::signal<void(AVPacket*)>& sig) -> tl::expected<void, Error> {
-  int ret;
-  avformat_alloc_output_context2(&fctx_, nullptr, "flv", desc_.uri.c_str());
-  if (!fctx_) {
-    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "failed to alloc output context"});
+MediaWriter::~MediaWriter() {
+  if (fctx_) {
+    avformat_close_input(&fctx_);
   }
-  auto stream = avformat_new_stream(fctx_, nullptr);
-  if (codec_par_) {
-    avcodec_parameters_copy(stream->codecpar, codec_par_);
+}
+
+auto MediaWriter::run() -> coro::Lazy<tl::expected<void, Error>> {
+  co_return tl::expected<void, Error>();
+}
+
+auto MediaWriter::slot_new_packet(AVPacket *pkt, const AVCodecParameters* codec_par) -> void {
+  av_packet_ref(pkt, pkt);
+  static std::unordered_map<MediaProtocol, std::string> fmt_mapping {
+      {MediaProtocol::RTMP, "flv"}
+  };
+
+  int ret {0};
+  if (!output_opened_){
+    std::string av_fmt{};
+    if (fmt_mapping.contains(desc_.protocol)) {
+      av_fmt = fmt_mapping[desc_.protocol];
+    }
+    if (av_fmt.empty()) {
+      spdlog::warn("un-support protocol:{}", protocol_as_string(desc_.protocol));
+      goto fail;
+    }
+    ret = avformat_alloc_output_context2(&fctx_, nullptr, av_fmt.c_str(), desc_.uri.c_str());
+    if (ret < 0) {
+      spdlog::warn("alloc output context failed:{}", av_err2str(ret));
+      goto fail;
+    }
+
+
+    auto stream = avformat_new_stream(fctx_, nullptr);
+    avcodec_parameters_copy(stream->codecpar, codec_par);
+
+    ret = avio_open2(&fctx_->pb, desc_.uri.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
+
+    if (ret < 0) {
+      spdlog::warn("open output failed:{}", av_err2str(ret));
+      goto fail;
+    }
+
+    ret = avformat_write_header(fctx_, nullptr);
+    if (ret < 0) {
+      spdlog::warn("write header failed:{}", av_err2str(ret));
+      goto fail;
+    }
+
+    output_opened_ = true;
+  }
+
+  ret = av_write_frame(fctx_, pkt);
+  av_packet_unref(pkt); pkt = nullptr;
+  if (ret < 0) {
+    spdlog::warn("write frame failed:{}", av_err2str(ret));
+    goto fail;
   } else {
-    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "no codec par"});
+    return ;
   }
 
-  ret = avio_open2(&fctx_->pb, desc_.uri.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
-  if (ret < 0) {
-    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "failed to open output file"});
-  }
+fail:
 
-  ret = avformat_write_header(fctx_, nullptr);
-  if (ret < 0) {
-    return tl::make_unexpected(Error{.code = ErrorType::EOS, .message = "failed to write header"});
-  }
-
-  sig.connect([this](AVPacket* pkt) { on_new_packet(pkt); });
-
-  return {};
-}
-
-auto MediaWriter::on_new_packet(AVPacket* pkt) -> void {
-  int ret = av_interleaved_write_frame(fctx_, pkt);
-  if (ret < 0) {
-    std::cout << "write frame failed: " << av_err2str(ret) << std::endl;
-  }
-  av_packet_unref(pkt);
-}
-
-auto MediaWriter::set_codec_par(const AVCodecParameters* par) -> void {
-  if (codec_par_ == nullptr) {
-    codec_par_ = avcodec_parameters_alloc();
-  }
-  avcodec_parameters_copy(codec_par_, par);
+  avformat_free_context(fctx_); fctx_ = nullptr;
+  output_opened_ = false;
 }
 
 }  // namespace MA
