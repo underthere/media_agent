@@ -5,7 +5,6 @@
 #ifndef MEDIA_AGENT_DECODER_HPP
 #define MEDIA_AGENT_DECODER_HPP
 
-#include "boost/asio.hpp"
 #include "boost/signals2.hpp"
 #include "tl/expected.hpp"
 extern "C" {

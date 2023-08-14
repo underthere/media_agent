@@ -38,7 +38,14 @@ FETCHCONTENT_DECLARE(
         GIT_TAG v1.12.0
 )
 
-FETCHCONTENT_MAKEAVAILABLE(argparse boost fmt spdlog async_simple)
+
+FETCHCONTENT_DECLARE(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.2
+)
+
+FETCHCONTENT_MAKEAVAILABLE(argparse boost fmt spdlog async_simple nlohmann_json)
 
 if (DEFINED ENV{ROCKCHIP})
     message(INFO "build on rockchip")

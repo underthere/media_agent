@@ -6,11 +6,7 @@
 #include "spdlog/spdlog.h"
 
 #include "media_common.hpp"
-#include "media_reader.hpp"
-#include "media_writer.hpp"
 #include "media_pod.hpp"
-
-#include "boost/asio.hpp"
 
 int main() {
   spdlog::set_level(spdlog::level::trace);

@@ -41,6 +41,8 @@ enum class PixelFormat {
 enum class CodecFormat { H264, H265, AV1 };
 
 enum class Profile {
+  H264_BASELINE,
+  H264_HIGH,
   UNKNOWN,
 };
 
@@ -56,7 +58,7 @@ struct VideoDescription {
   PixelFormat pixel_format;
   CodecFormat codec_format;
   Profile profile;
-  Level level;
+  uint32_t level;
   std::uint64_t bitrate;  // in bps
 };
 
