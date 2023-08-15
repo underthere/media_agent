@@ -15,7 +15,6 @@ extern "C" {
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
-using namespace nlohmann::literals;
 
 inline auto rotional2double(const AVRational& r) -> double {
   if (r.den == 0 || r.num == 0) return 0;
@@ -150,8 +149,8 @@ inline auto json_to_opt_video_desc(const json& j) -> std::optional<MA::VideoDesc
 
 inline auto json_to_media_desc(const json& j) -> MA::MediaDescription {
   return MA::MediaDescription{
-      .uri = j["uri"].get<std::string>(),
       .protocol = protocol_from_string(j["protocol"].get<std::string>()),
+      .uri = j["uri"].get<std::string>(),      
       .video_description = json_to_opt_video_desc(j.at("video_description")),
   };
 }

@@ -8,8 +8,15 @@ set(EXE "media_agent")
 
 file(GLOB source_files source/*.cpp)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ffmpeg REQUIRED IMPORTED_TARGET avcodec avdevice avfilter avformat avutil postproc swresample swscale)
+
+find_package(nlohmann_json REQUIRED)
+find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
+
+set(dep_libs pthread uuid nlohmann_json::nlohmann_json fmt::fmt async_simple spdlog::spdlog)
+
 add_executable(${EXE} ${source_files})
 target_include_directories(${EXE} PRIVATE include)
-target_include_directories(${EXE} PUBLIC ${TL_EXPECTED_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIRS})
-target_link_directories(${EXE} PUBLIC ${FFMPEG_LIBRARY_DIRS})
-target_link_libraries(${EXE} PUBLIC ${FFMPEG_LIBRARIES} nlohmann_json::nlohmann_json fmt::fmt async_simple spdlog::spdlog)
+target_link_libraries(${EXE} PUBLIC PkgConfig::ffmpeg ${dep_libs})
