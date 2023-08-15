@@ -2,8 +2,8 @@
 // Created by underthere on 2023/8/14.
 //
 
-#ifndef MEDIA_AGENT_SIGNAL_HPP
-#define MEDIA_AGENT_SIGNAL_HPP
+#ifndef MEDIA_AGENT_SIGNALS_HPP
+#define MEDIA_AGENT_SIGNALS_HPP
 
 #include <cassert>
 #include <functional>
@@ -13,12 +13,14 @@
 
 #include "nocopy.hpp"
 
-namespace asignal {
+namespace signals {
 
 namespace detail {
-template <typename Callback> struct slot_impl;
+template <typename Callback>
+struct slot_impl;
 
-template <typename Callback> struct signal_impl : nocopy {
+template <typename Callback>
+struct signal_impl : nocopy {
   using slot_vec = std::vector<std::weak_ptr<slot_impl<Callback>>>;
 
   signal_impl() : slots_(new slot_vec) {}
@@ -47,20 +49,18 @@ template <typename Callback> struct signal_impl : nocopy {
   std::shared_ptr<slot_vec> slots_;
 };
 
-template <typename Callback> struct slot_impl : nocopy {
+template <typename Callback>
+struct slot_impl : nocopy {
   using Data = signal_impl<Callback>;
 
-  slot_impl(const std::shared_ptr<Data> &data, Callback &&callback)
-      : data_(data), cb_(std::move(callback)), tie_(), tied_(false) {}
+  slot_impl(const std::shared_ptr<Data> &data, Callback &&callback) : data_(data), cb_(std::move(callback)), tie_(), tied_(false) {}
 
-  slot_impl(const std::shared_ptr<Data> &data, Callback &&callback,
-            const std::shared_ptr<void> &tie)
+  slot_impl(const std::shared_ptr<Data> &data, Callback &&callback, const std::shared_ptr<void> &tie)
       : data_(data), cb_(std::move(callback)), tie_(tie), tied_(true) {}
 
   ~slot_impl() {
     std::shared_ptr<Data> data(data_.lock());
-    if (data)
-      data->clean();
+    if (data) data->clean();
   }
 
   std::weak_ptr<Data> data_;
@@ -68,14 +68,16 @@ template <typename Callback> struct slot_impl : nocopy {
   std::weak_ptr<void> tie_;
   bool tied_;
 };
-} // namespace detail
+}  // namespace detail
 
 using slot = std::shared_ptr<void>;
 
-template <typename Signature> class signal;
+template <typename Signature>
+class signal;
 
-template <typename R, typename... Args> class signal<R(Args...)> : nocopy {
-public:
+template <typename R, typename... Args>
+class signal<R(Args...)> : nocopy {
+ public:
   using Callback = std::function<R(Args...)>;
   using slot_type = detail::slot_impl<Callback>;
   using signal_type = detail::signal_impl<Callback>;
@@ -97,24 +99,26 @@ public:
       slots = signal.slots_;
     }
     typename signal_type::slot_vec &list(*slots);
-    for (typename signal_type::slot_vec::const_iterator it = list.begin();
-         it != list.end(); ++it) {
+    for (typename signal_type::slot_vec::const_iterator it = list.begin(); it != list.end(); ++it) {
       std::shared_ptr<slot_type> slot(it->lock());
       if (slot) {
         std::shared_ptr<void> guard;
         if (slot->tied_) {
           guard = slot->tie_.lock();
           if (guard) {
-            slot->cb_(std::forward<Args>(args)...);
+            slot->cb_(args...);
           }
         } else {
-          slot->cb_(std::forward<Args>(args)...);
+          slot->cb_(args...);
         }
       }
     }
   }
 
-private:
+  auto operator()(Args &&...args) { call(std::forward<Args>(args)...); }
+  auto operator()(Args... args) { call(std::move(args)...); }
+
+ private:
   auto add(const std::shared_ptr<slot_type> &slot) {
     signal_type &signal(*signal_);
     {
@@ -127,6 +131,6 @@ private:
   const std::shared_ptr<signal_type> signal_;
 };
 
-} // namespace asignal
+}  // namespace signals
 
-#endif // MEDIA_AGENT_SIGNAL_HPP
+#endif  // MEDIA_AGENT_SIGNALS_HPP

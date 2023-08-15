@@ -10,8 +10,8 @@ extern "C" {
 }
 
 #include "async_simple/coro/Lazy.h"
-#include "boost/signals2.hpp"
 #include "media_common.hpp"
+#include "signals.hpp"
 #include "tl/expected.hpp"
 
 using namespace async_simple;

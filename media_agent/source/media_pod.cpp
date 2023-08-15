@@ -18,10 +18,11 @@ auto MediaPod::run() -> coro::Lazy<tl::expected<void, Error>> { co_return co_awa
 
 auto MediaPod::add_output(const uuid_t &id, const MediaDescription &desc) -> tl::expected<std::string, Error> {
   auto writer = std::make_shared<MEDIA_WRITER_T>(desc);
-  auto conn = source_reader_->sig_new_packet_.connect(
-      [&writer](AVPacket *pkt, const AVCodecParameters *codec_par) { writer->slot_new_packet(pkt, codec_par); });
+  auto conn = source_reader_->sig_new_packet_.connect([writer_raw = writer.get()](auto &&PH1, auto &&PH2) {
+    writer_raw->slot_new_packet(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
+  });
   this->writers_.emplace(id, writer);
-  this->links_tos_[id_].push_back(id);
+  this->links_tos_[id_].push_back({id, conn});
   return id;
 }
 

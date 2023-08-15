@@ -11,10 +11,12 @@
 #include <unordered_map>
 
 #include "async_simple/coro/Lazy.h"
+#include "tl/expected.hpp"
 #include "media_common.hpp"
 #include "media_reader.hpp"
 #include "media_writer.hpp"
-#include "tl/expected.hpp"
+#include "signals.hpp"
+
 
 using namespace async_simple;
 
@@ -25,6 +27,7 @@ using MEDIA_WRITER_T = MediaWriter;
 using MEDIA_TRANSOFRMER_T = void;
 
 class MediaPod {
+  using link_type = std::pair<uuid_t, signals::slot>;
  private:
   std::string id_;
   MediaDescription source_desc_;
@@ -34,7 +37,7 @@ class MediaPod {
   std::unordered_map<std::string, std::shared_ptr<MEDIA_TRANSOFRMER_T>> transformers_;
   std::unordered_map<std::string, std::shared_ptr<MEDIA_WRITER_T>> writers_;
 
-  std::unordered_map<std::string, std::list<std::string>> links_tos_;
+  std::unordered_map<std::string, std::list<link_type>> links_tos_;
 
  public:
   explicit MediaPod(const std::string& id, const MediaDescription& desc);

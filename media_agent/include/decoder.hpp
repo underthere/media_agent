@@ -5,7 +5,7 @@
 #ifndef MEDIA_AGENT_DECODER_HPP
 #define MEDIA_AGENT_DECODER_HPP
 
-#include "boost/signals2.hpp"
+#include "signals.hpp"
 #include "tl/expected.hpp"
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -20,7 +20,7 @@ class Decoder {
   explicit Decoder(MediaDescription input, HardwareAccelerator hw = HardwareAccelerator::NONE);
   virtual ~Decoder();
 
-  boost::signals2::signal<void(AVFrame*)> sig_new_frame;
+  signals::signal<void(AVFrame*)> sig_new_frame;
 
   virtual auto start() -> tl::expected<void, Error>;
 

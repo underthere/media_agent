@@ -13,7 +13,7 @@ extern "C" {
 #include "libavutil/time.h"
 }
 #include "async_simple/coro/Lazy.h"
-#include "boost/signals2.hpp"
+#include "signals.hpp"
 #include "tl/expected.hpp"
 
 #include "media_common.hpp"
@@ -32,8 +32,7 @@ class MediaReader {
 
   auto read() -> tl::expected<AVPacket *, Error>;
 
-  boost::signals2::signal<void(AVPacket *, const AVCodecParameters* )> sig_new_packet_;
-  // boost::signals2::signal<void(AVCodecParameters *)> sig_codec_par_;
+  signals::signal<void(AVPacket *, const AVCodecParameters* )> sig_new_packet_;
 
  private:
   auto get_current_codec_par() -> const AVCodecParameters*;
