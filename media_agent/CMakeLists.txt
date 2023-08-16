@@ -9,7 +9,7 @@ set(EXE "media_agent")
 file(GLOB source_files source/*.cpp)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(ffmpeg REQUIRED IMPORTED_TARGET avcodec avdevice avfilter avformat avutil postproc swresample swscale)
+pkg_check_modules(ffmpeg REQUIRED IMPORTED_TARGET libavcodec libavdevice libavfilter libavformat libavutil libpostproc libswresample libswscale)
 
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
