@@ -12,10 +12,10 @@
 
 #include "async_simple/coro/Lazy.h"
 #include "tl/expected.hpp"
-#include "media_common.hpp"
+#include "common/media_common.hpp"
 #include "media_reader.hpp"
 #include "media_writer.hpp"
-#include "signals.hpp"
+#include "utils/signals.hpp"
 
 
 using namespace async_simple;

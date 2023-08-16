@@ -5,7 +5,7 @@
 #ifndef MEDIA_AGENT_MEDIAAGENT_HPP
 #define MEDIA_AGENT_MEDIAAGENT_HPP
 
-#include "media_common.hpp"
+#include "common/media_common.hpp"
 #include "tl/expected.hpp"
 
 namespace MA {

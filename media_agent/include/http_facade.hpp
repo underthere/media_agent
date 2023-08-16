@@ -5,7 +5,7 @@
 #ifndef MEDIA_AGENT_HTTP_FACADE_HPP
 #define MEDIA_AGENT_HTTP_FACADE_HPP
 
-#include "media_common.hpp"
+#include "common/media_common.hpp"
 
 class HttpFacade {
 
