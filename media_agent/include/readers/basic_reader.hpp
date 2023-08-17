@@ -2,9 +2,8 @@
 // Created by underthere on 2023/7/28.
 //
 
-#ifndef MEDIA_AGENT_MEDIA_READER_HPP
-#define MEDIA_AGENT_MEDIA_READER_HPP
-
+#ifndef MEDIA_AGENT_BASIC_READER_HPP
+#define MEDIA_AGENT_BASIC_READER_HPP
 
 #include <chrono>
 
@@ -26,10 +25,10 @@ using namespace async_simple;
 
 namespace MA {
 
-class MediaReader {
+class BasicReader {
  public:
-  explicit MediaReader(MediaDescription desc);
-  virtual ~MediaReader();
+  explicit BasicReader(MediaDescription desc, bool realtime = false);
+  virtual ~BasicReader();
 
   auto run() -> coro::Lazy<tl::expected<void, Error>>;
 
@@ -44,6 +43,7 @@ class MediaReader {
  private:
   bool running = false;
   bool media_opened_ = false;
+  bool realtime_;
   std::chrono::duration<uint64_t, std::micro> retry_interval_ = 1000ms;
   MediaDescription desc_;
   AVFormatContext *fctx_;
@@ -54,4 +54,4 @@ class MediaReader {
 
 }  // namespace MA
 
-#endif  // MEDIA_AGENT_MEDIA_READER_HPP
+#endif  // MEDIA_AGENT_BASIC_READER_HPP

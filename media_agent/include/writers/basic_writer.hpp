@@ -2,8 +2,8 @@
 // Created by underthere on 2023/7/31.
 //
 
-#ifndef MEDIA_AGENT_MEDIA_WRITER_HPP
-#define MEDIA_AGENT_MEDIA_WRITER_HPP
+#ifndef MEDIA_AGENT_BASIC_WRITER_HPP
+#define MEDIA_AGENT_BASIC_WRITER_HPP
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -17,10 +17,10 @@ extern "C" {
 using namespace async_simple;
 
 namespace MA {
-class MediaWriter {
+class BasicWriter {
  public:
-  explicit MediaWriter(const MediaDescription &desc);
-  virtual ~MediaWriter();
+  explicit BasicWriter(const MediaDescription &desc);
+  virtual ~BasicWriter();
 
   auto run() -> coro::Lazy<tl::expected<void, Error>>;
 
@@ -36,4 +36,4 @@ class MediaWriter {
 };
 }  // namespace MA
 
-#endif  // MEDIA_AGENT_MEDIA_WRITER_HPP
+#endif  // MEDIA_AGENT_BASIC_WRITER_HPP

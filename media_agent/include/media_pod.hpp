@@ -11,19 +11,18 @@
 #include <unordered_map>
 
 #include "async_simple/coro/Lazy.h"
-#include "tl/expected.hpp"
 #include "common/media_common.hpp"
-#include "media_reader.hpp"
-#include "media_writer.hpp"
+#include "readers/basic_reader.hpp"
+#include "tl/expected.hpp"
 #include "utils/signals.hpp"
-
+#include "writers/basic_writer.hpp"
 
 using namespace async_simple;
 
 namespace MA {
 
-using MEDIA_READER_T = MediaReader;
-using MEDIA_WRITER_T = MediaWriter;
+using MEDIA_READER_T = BasicReader;
+using MEDIA_WRITER_T = BasicWriter;
 using MEDIA_TRANSOFRMER_T = void;
 
 class MediaPod {

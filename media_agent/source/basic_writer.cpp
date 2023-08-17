@@ -4,27 +4,28 @@
 
 #include <unordered_map>
 
-#include "spdlog/spdlog.h"
 #include "common/av_misc.hpp"
-#include "media_writer.hpp"
+#include "spdlog/spdlog.h"
+#include "writers/basic_writer.hpp"
 
 using namespace async_simple;
 
 namespace MA {
 
-MediaWriter::MediaWriter(const MediaDescription& desc): desc_(desc) {}
+BasicWriter::BasicWriter(const MediaDescription& desc): desc_(desc) {}
 
-MediaWriter::~MediaWriter() {
+BasicWriter::~BasicWriter() {
   if (fctx_) {
     avformat_close_input(&fctx_);
   }
 }
 
-auto MediaWriter::run() -> coro::Lazy<tl::expected<void, Error>> {
+auto BasicWriter::run() -> coro::Lazy<tl::expected<void, Error>> {
   co_return tl::expected<void, Error>();
 }
 
-auto MediaWriter::slot_new_packet(AVPacket *pkt, const AVCodecParameters* codec_par) -> void {
+auto BasicWriter::slot_new_packet(AVPacket *pkt, const AVCodecParameters* codec_par) -> void {
+  spdlog::trace("writer input packet:{}, par: {}", pkt->pts, fmt::ptr(codec_par));
   av_packet_ref(pkt, pkt);
   static std::unordered_map<MediaProtocol, std::string> fmt_mapping {
       {MediaProtocol::RTMP, "flv"}
@@ -48,7 +49,8 @@ auto MediaWriter::slot_new_packet(AVPacket *pkt, const AVCodecParameters* codec_
 
 
     auto stream = avformat_new_stream(fctx_, nullptr);
-    avcodec_parameters_copy(stream->codecpar, codec_par);
+    // avcodec_parameters_copy(stream->codecpar, codec_par);
+    avcodec_parameters_from_context(stream->codecpar, (const AVCodecContext*) codec_par);
 
     ret = avio_open2(&fctx_->pb, desc_.uri.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
 

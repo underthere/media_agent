@@ -8,6 +8,7 @@
 #include <string>
 extern "C" {
 #include "libavutil/avutil.h"
+#include "libavcodec/avcodec.h"
 #include "libavutil/time.h"
 }
 
@@ -22,6 +23,30 @@ inline auto rotional2double(const AVRational& r) -> double {
 }
 
 inline auto timebase2us(const AVRational& r) -> std::int64_t { return static_cast<std::int64_t>(1e6 * rotional2double(r)); }
+
+inline auto codec_format2av_codec_id(const MA::CodecFormat& format) -> AVCodecID {
+  switch (format) {
+    case MA::CodecFormat::H264:
+      return AV_CODEC_ID_H264;
+    case MA::CodecFormat::H265:
+      return AV_CODEC_ID_HEVC;
+    case MA::CodecFormat::AV1:
+      return AV_CODEC_ID_AV1;
+    default:
+      return AV_CODEC_ID_NONE;
+  }
+}
+
+inline auto profile2av_profile(const MA::Profile& profile) -> int {
+  switch (profile) {
+    case MA::Profile::H264_BASELINE:
+      return FF_PROFILE_H264_BASELINE;
+    case MA::Profile::H264_HIGH:
+      return FF_PROFILE_H264_HIGH;
+    default:
+      return FF_PROFILE_UNKNOWN;
+  }
+}
 
 inline auto protocol_as_string(const MA::MediaProtocol& protocol) -> std::string {
   switch (protocol) {
@@ -154,5 +179,6 @@ inline auto json_to_media_desc(const json& j) -> MA::MediaDescription {
       .video_description = json_to_opt_video_desc(j.at("video_description")),
   };
 }
+
 
 #endif  // MEDIA_AGENT_AV_MISC_HPP
