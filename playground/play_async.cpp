@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "fmt/format.h"
+// #include "fmt/format.h"
 #include "async_simple/coro/Lazy.h"
 #include "async_simple/coro/SyncAwait.h"
 
@@ -43,6 +43,6 @@ fn CountFileCharNum(const std::string &filename, char c) -> Lazy<int> {
 
 int main() {
     int Num = syncAwait(CountFileCharNum("/workdir/playground/play_async.cpp", 'a'));
-    std::cout << fmt::format("Num: {}", Num) << std::endl;
+    std::cout << Num << std::endl;
     return 0;
 }

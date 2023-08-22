@@ -69,6 +69,7 @@ auto BasicReader::run() -> coro::Lazy<tl::expected<void, Error>> {
       if (realtime_) {
         auto dts = timebase2us(fctx_->streams[best_video_index_]->time_base) * pkt->dts;
         if (dts > now) {
+          spdlog::trace("sleep {} ms", (dts - now) / 1000);
           co_await coro::sleep(std::chrono::microseconds(dts - now));
         }
       }

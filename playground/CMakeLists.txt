@@ -29,7 +29,14 @@ set(CMAKE_CXX_STANDARD 20)
 # target_link_directories(${EXE} PRIVATE ${FFMPEG_LIBRARY_DIRS})
 # target_link_libraries(${EXE} PRIVATE ${FFMPEG_LIBRARIES} argparse::argparse fmt::fmt)
 
-find_package(fmt CONFIG REQUIRED)
+find_package(LibDataChannel CONFIG REQUIRED)
+
 set(EXE play_async)
 add_executable(${EXE} play_async.cpp)
-target_link_libraries(${EXE} PRIVATE async_simple fmt::fmt)
+target_link_libraries(${EXE} PRIVATE /usr/local/lib/libasync_simple.a LibDataChannel::LibDataChannel)
+
+
+#set(EXE play_datachannel)
+#add_executable(${EXE} play_datachannel.cpp)
+#target_link_directories(${EXE} PRIVATE /usr/local/lib)
+#target_link_libraries(${EXE} PRIVATE pthread /usr/local/lib/libasync_simple.a LibDataChannel::LibDataChannel)
