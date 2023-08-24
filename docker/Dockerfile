@@ -110,25 +110,16 @@ RUN git clone -b ${TL_EXPECTED_VERSION} --single-branch https://github.com/Tarta
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
 ENV PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 
-# ffmpeg
-ARG FFMPEG_GIT_TAG=n6.0
-
-RUN git clone -b $FFMPEG_GIT_TAG --single-branch https://github.com/FFmpeg/FFmpeg.git ffmpeg && \
-    pushd ffmpeg && git submodule update --init --recursive && \
-    ./configure --enable-debug=3 --enable-gpl --enable-nonfree --enable-libdrm --enable-librtmp --enable-static --enable-shared --enable-pthreads --enable-libx264 --enable-libx265 --prefix=/usr/local && \
-    make -j`nproc` && make install && \
-    popd && rm -rf ffmpeg  
-
 # rockchip multimedia libs
 ARG ROCKCHIP
 ENV ROCKCHIP=${ROCKCHIP}
 RUN if [ "${ROCKCHIP}" == "1" ]; then \
-        git clone -b linux-rga --single-branch https://github.com/JeffyCN/mirrors.git && \
-        pushd mirrors && \
+        git clone --single-branch https://github.com/jjm2473/librga.git && \
+        pushd librga && \
         meson build && \
         cd build && \
         ninja install && \
-        popd  && rm -rf mirrors; \
+        popd  && rm -rf librga; \
     fi
 RUN if [ "${ROCKCHIP}" == "1" ]; then \
         git clone --single-branch https://github.com/rockchip-linux/mpp.git && \
@@ -137,6 +128,26 @@ RUN if [ "${ROCKCHIP}" == "1" ]; then \
         cmake .. && make -j`nproc` && make install && \
         popd && rm -rf mpp; \
     fi
+
+# ffmpeg
+ARG FFMPEG_GIT_TAG=release/5.1
+ARG FFMPEG_RK_GIT_TAG=enc-5.1
+
+RUN if [ "${ROCKCHIP}"  == "1" ]; then \
+    git clone -b $FFMPEG_RK_GIT_TAG --single-branch https://github.com/jjm2473/ffmpeg-rk.git ffmpeg && \
+    pushd ffmpeg && git submodule update --init --recursive && \
+    ./configure --enable-nonfree --enable-gpl --enable-version3 --enable-libx264 --enable-libdrm --enable-rkmpp --enable-librtmp --enable-shared --enable-static --enable-librga --enable-libx265 --prefix=/usr/local && \
+    make -j`nproc` && make install && \
+    popd && rm -rf ffmpeg; \
+else \
+    git clone -b $FFMPEG_GIT_TAG --single-branch https://github.com/FFmpeg/FFmpeg.git ffmpeg && \
+    pushd ffmpeg && git submodule update --init --recursive && \
+    ./configure --enable-gpl --enable-nonfree --enable-libdrm --enable-version3 --enable-librtmp --enable-static --enable-shared --enable-pthreads --enable-libx264 --enable-libx265 --prefix=/usr/local && \
+    make -j`nproc` && make install && \
+    popd && rm -rf ffmpeg; \
+fi
+
+RUN ln -s /usr/bin/clangd-16 /usr/bin/clangd
 
 ENV http_proxy=""
 ENV https_proxy=""
