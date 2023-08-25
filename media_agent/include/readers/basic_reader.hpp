@@ -32,7 +32,7 @@ class BasicReader {
 
   auto run() -> coro::Lazy<tl::expected<void, Error>>;
 
-  auto read() -> tl::expected<AVPacket *, Error>;
+  auto read() -> tl::expected<void, Error>;
 
   signals::signal<slot_new_packet_type> sig_new_packet_;
   signals::signal<slot_new_frame_type> sig_new_frame_;
@@ -44,6 +44,7 @@ class BasicReader {
   bool running = false;
   bool media_opened_ = false;
   bool realtime_;
+  AVPacket readed_pkt_;
   std::chrono::duration<uint64_t, std::micro> retry_interval_ = 1000ms;
   MediaDescription desc_;
   AVFormatContext *fctx_;

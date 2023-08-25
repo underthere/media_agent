@@ -11,8 +11,19 @@ BasicDecoder::BasicDecoder(const MediaDescription &input_desc, const MediaDescri
     : MediaTransformer(input_desc, output_desc) {}
 BasicDecoder::~BasicDecoder() {}
 
-auto BasicDecoder::slot_new_packet(AVPacket *pkt, const AVCodecParameters *codecpar) -> void {
+auto BasicDecoder::slot_new_packet(MediaBuffer &buffer) -> void {
   int ret;
+  if (!buffer.data) {
+    spdlog::warn("no data");
+    return;
+  }
+  auto pkt = av_packet_clone((AVPacket *)buffer.data);
+  if (!buffer.codec_par && !buffer.codec_ctx) {
+    spdlog::warn("no codec");
+    return;
+  }
+  auto *codecpar = (AVCodecParameters *)buffer.codec_par;
+  auto *codec_ctx = (AVCodecContext *)buffer.codec_ctx;
   if (!inited_) {
     decoder_ = avcodec_find_decoder(codecpar->codec_id);
     if (!decoder_) {
@@ -42,7 +53,7 @@ auto BasicDecoder::slot_new_packet(AVPacket *pkt, const AVCodecParameters *codec
     return;
   }
 
-  AVFrame* frame = av_frame_alloc();
+  AVFrame *frame = av_frame_alloc();
   ret = avcodec_receive_frame(dec_ctx_, frame);
   if (ret < 0) {
     av_frame_free(&frame);
@@ -52,13 +63,18 @@ auto BasicDecoder::slot_new_packet(AVPacket *pkt, const AVCodecParameters *codec
   }
 
   spdlog::trace("decoder output frame: {}", frame->pts);
-  signal_new_frame(frame, codecpar);
+  MediaBuffer step_buffer{
+      .type = MediaBufferType::FF_FRAME,
+      .data = frame,
+      .codec_par = nullptr,
+      .codec_ctx = dec_ctx_,
+  };
+  signal_new_frame(step_buffer);
   av_frame_free(&frame);
 }
 
 auto BasicDecoder::init() -> tl::expected<void, Error> { return tl::expected<void, Error>(); }
 auto BasicDecoder::flush() -> tl::expected<void, Error> { return tl::expected<void, Error>(); }
 auto BasicDecoder::close() -> tl::expected<void, Error> { return tl::expected<void, Error>(); }
-
 
 }  // namespace MA

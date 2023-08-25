@@ -11,18 +11,37 @@ namespace MA {
 BasicEncoder::BasicEncoder(const MediaDescription& input_desc, const MediaDescription& output_desc)
     : MediaTransformer(input_desc, output_desc) {}
 
-auto BasicEncoder::slot_new_frame(AVFrame* frame, const AVCodecParameters* par) -> void {
+auto BasicEncoder::slot_new_frame(MediaBuffer& in_buffer) -> void {
   int ret;
+  if (!in_buffer.data) {
+    spdlog::warn("no frame data");
+    return;
+  }
+  auto frame = av_frame_clone((AVFrame*)in_buffer.data);
+  if (!in_buffer.codec_par && !in_buffer.codec_ctx) {
+    spdlog::warn("no codec data");
+    return;
+  }
+  auto codec_ctx = (AVCodecContext*)in_buffer.codec_ctx;
   if (!inited_) {
     encoder_ = avcodec_find_encoder(codec_format2av_codec_id(output_desc_.video_description->codec_format));
     if (!encoder_) {
       spdlog::error("find encoder failed:{}", codec_format_to_string(output_desc_.video_description->codec_format));
       return;
     }
+
     enc_ctx_ = avcodec_alloc_context3(encoder_);
     if (!enc_ctx_) {
+      avcodec_free_context(&enc_ctx_);
       spdlog::error("alloc encoder context failed");
       return;
+    }
+    if (frame->hw_frames_ctx) {
+      spdlog::info("using frame hw_frames_ctx {}", (void*)frame->hw_frames_ctx->size);
+      enc_ctx_->hw_frames_ctx = av_buffer_ref(frame->hw_frames_ctx);
+    } else if (codec_ctx && codec_ctx->hw_frames_ctx) {
+      spdlog::info("using codec hw_frames_ctx");
+      enc_ctx_->hw_frames_ctx = av_buffer_ref(codec_ctx->hw_frames_ctx);
     }
     enc_ctx_->width = frame->width;
     enc_ctx_->height = frame->height;
@@ -42,7 +61,11 @@ auto BasicEncoder::slot_new_frame(AVFrame* frame, const AVCodecParameters* par) 
     inited_ = true;
   }
 
+  if (frame->pts < 0) {
+    frame->pts = 0;
+  }
   ret = avcodec_send_frame(enc_ctx_, frame);
+  av_frame_free(&frame);
   if (ret < 0) {
     if (ret == AVERROR(EAGAIN)) return;
     spdlog::error("send frame to encoder failed:{}", av_err2str(ret));
@@ -68,7 +91,13 @@ auto BasicEncoder::slot_new_frame(AVFrame* frame, const AVCodecParameters* par) 
   }
 
   spdlog::debug("encoder output packet: {}", pkt->pts);
-  signal_new_packet(pkt, (const AVCodecParameters *)enc_ctx_);
+  MediaBuffer out_buffer{
+      .type = MediaBufferType::FF_PACKET,
+      .data = pkt,
+      .codec_par = nullptr,
+      .codec_ctx = enc_ctx_,
+  };
+  signal_new_packet(out_buffer);
   av_packet_free(&pkt);
 }
 BasicEncoder::~BasicEncoder() {}

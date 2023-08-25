@@ -71,6 +71,18 @@ struct MediaDescription {
   std::optional<AudioDescription> audio_description;
   std::optional<void*> custom_description;
 };
+
+enum class MediaBufferType {
+  FF_PACKET,
+  FF_FRAME,
+};
+
+struct MediaBuffer {
+  MediaBufferType type;
+  void* data;
+  void* codec_par;
+  void* codec_ctx;
+};
 }  // namespace MA
 
 #endif  // MEDIA_AGENT_MEDIA_COMMON_HPP

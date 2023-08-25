@@ -14,7 +14,7 @@ class BasicEncoder : public MediaTransformer {
   BasicEncoder(const MediaDescription& input_desc, const MediaDescription& output_desc);
   ~BasicEncoder();
 
-  auto slot_new_frame(AVFrame* frame, const AVCodecParameters* par) -> void;
+  auto slot_new_frame(MediaBuffer &in_buffer) -> void;
 
  private:
   bool inited_;

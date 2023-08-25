@@ -2,31 +2,31 @@
 // Created by underthere on 2023/7/28.
 //
 
+#include "readers/basic_reader.hpp"
+
 #include <utility>
 
 #include "async_simple/coro/Sleep.h"
 #include "common/av_misc.hpp"
-#include "readers/basic_reader.hpp"
 #include "spdlog/spdlog.h"
 
 using namespace async_simple;
 
 namespace MA {
 
-auto BasicReader::read() -> tl::expected<AVPacket *, Error> {
+auto BasicReader::read() -> tl::expected<void, Error> {
   static std::unordered_map<int, ErrorType> error_map{
       {AVERROR_EOF, ErrorType::EOS},
   };
 
-  AVPacket *pkt = av_packet_alloc();
-  int ret = av_read_frame(fctx_, pkt);
+  int ret = av_read_frame(fctx_, &readed_pkt_);
   if (ret < 0) {
     if (error_map.contains(ret)) {
       return tl::unexpected<Error>({error_map[ret], std::string("av_read_frame failed:") + std::string(av_err2str(ret))});
     }
     return tl::unexpected<Error>({ErrorType::UNKNOWN, std::string("av_read_frame failed:") + std::string(av_err2str(ret))});
   }
-  return pkt;
+  return {};
 }
 
 auto BasicReader::run() -> coro::Lazy<tl::expected<void, Error>> {
@@ -64,7 +64,7 @@ auto BasicReader::run() -> coro::Lazy<tl::expected<void, Error>> {
     auto result = read();
     if (result.has_value()) {
       auto now = av_gettime() - start_time_;
-      auto pkt = result.value();
+      auto pkt = &readed_pkt_;
       if (pkt->dts == 0) pkt->dts = pkt->pts;
       if (realtime_) {
         auto dts = timebase2us(fctx_->streams[best_video_index_]->time_base) * pkt->dts;
@@ -73,8 +73,14 @@ auto BasicReader::run() -> coro::Lazy<tl::expected<void, Error>> {
           co_await coro::sleep(std::chrono::microseconds(dts - now));
         }
       }
-      sig_new_packet_(pkt, get_current_codec_par());
-      av_packet_free(&pkt);
+      MediaBuffer buffer{
+          .type = MediaBufferType::FF_PACKET,
+          .data = pkt,
+          .codec_par = fctx_->streams[best_video_index_]->codecpar,
+          .codec_ctx = nullptr,
+      };
+      sig_new_packet_(buffer);
+      av_packet_unref(pkt);
     } else {
       if (result.error().code == ErrorType::EOS) {
         spdlog::info("read {} eos", desc_.uri);
@@ -94,9 +100,10 @@ BasicReader::~BasicReader() {
   }
 }
 
-BasicReader::BasicReader(MediaDescription desc, bool realtime) : desc_(std::move(desc)), realtime_(realtime), fctx_(nullptr), best_video_index_(-1), start_time_(0) {}
+BasicReader::BasicReader(MediaDescription desc, bool realtime)
+    : desc_(std::move(desc)), realtime_(realtime), fctx_(nullptr), best_video_index_(-1), start_time_(0) {}
 
-auto BasicReader::get_current_codec_par() -> const AVCodecParameters * {
+auto BasicReader::get_current_codec_par() -> const AVCodecParameters* {
   if (fctx_ == nullptr || best_video_index_ < 0) return nullptr;
   return fctx_->streams[best_video_index_]->codecpar;
 }

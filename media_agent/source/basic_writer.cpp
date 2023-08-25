@@ -24,12 +24,25 @@ auto BasicWriter::run() -> coro::Lazy<tl::expected<void, Error>> {
   co_return tl::expected<void, Error>();
 }
 
-auto BasicWriter::slot_new_packet(AVPacket *pkt, const AVCodecParameters* codec_par) -> void {
-  spdlog::trace("writer input packet:{}, par: {}", pkt->pts, fmt::ptr(codec_par));
-  av_packet_ref(pkt, pkt);
+auto BasicWriter::slot_new_packet(MediaBuffer& buffer) -> void {
   static std::unordered_map<MediaProtocol, std::string> fmt_mapping {
       {MediaProtocol::RTMP, "flv"}
   };
+
+  AVPacket *pkt = nullptr;
+  if (buffer.type == MediaBufferType::FF_PACKET && buffer.data) {
+    pkt = av_packet_clone((AVPacket*)buffer.data);
+  } else {
+    spdlog::warn("un-support buffer type:{}", buffer.type);
+    return;
+  }
+  auto codec_par = (AVCodecParameters*)buffer.codec_par;
+  auto codec_ctx = (AVCodecContext*)buffer.codec_ctx;
+  if (!codec_par && !codec_ctx) {
+    spdlog::warn("un-support codec par:{}", fmt::ptr(codec_par));
+    return;
+  }
+  spdlog::trace("writer input packet:{}, par: {}", pkt->pts, fmt::ptr(codec_par));
 
   int ret {0};
   if (!output_opened_){
@@ -47,10 +60,16 @@ auto BasicWriter::slot_new_packet(AVPacket *pkt, const AVCodecParameters* codec_
       goto fail;
     }
 
-
     auto stream = avformat_new_stream(fctx_, nullptr);
-    // avcodec_parameters_copy(stream->codecpar, codec_par);
-    avcodec_parameters_from_context(stream->codecpar, (const AVCodecContext*) codec_par);
+    if (codec_par){
+      avcodec_parameters_copy(stream->codecpar, codec_par);
+    } else {
+      avcodec_parameters_from_context(stream->codecpar, codec_ctx);
+    }
+
+    if (codec_ctx) {
+      stream->time_base = codec_ctx->time_base;
+    }
 
     ret = avio_open2(&fctx_->pb, desc_.uri.c_str(), AVIO_FLAG_WRITE, nullptr, nullptr);
 
@@ -68,8 +87,11 @@ auto BasicWriter::slot_new_packet(AVPacket *pkt, const AVCodecParameters* codec_
     output_opened_ = true;
   }
 
+//  if (codec_ctx) {
+//    av_packet_rescale_ts(pkt, codec_ctx->time_base, fctx_->streams[0]->time_base);
+//  }
   ret = av_write_frame(fctx_, pkt);
-  av_packet_unref(pkt); pkt = nullptr;
+  av_packet_free(&pkt);
   if (ret < 0) {
     spdlog::warn("write frame failed:{}", av_err2str(ret));
     goto fail;

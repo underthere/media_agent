@@ -15,7 +15,7 @@ class BasicDecoder : public MediaTransformer {
   BasicDecoder(const MediaDescription& input_desc, const MediaDescription& output_desc);
   virtual ~BasicDecoder();
 
-  auto slot_new_packet(AVPacket* pkt, const AVCodecParameters* codecpar) -> void;
+  auto slot_new_packet(MediaBuffer &buffer) -> void;
 
   auto init() -> tl::expected<void, Error>;
   auto flush() -> tl::expected<void, Error>;

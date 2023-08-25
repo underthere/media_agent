@@ -24,7 +24,7 @@ class BasicWriter {
 
   auto run() -> coro::Lazy<tl::expected<void, Error>>;
 
-  auto slot_new_packet(AVPacket *, const AVCodecParameters*) -> void;
+  auto slot_new_packet(MediaBuffer&) -> void;
 
  private:
 
