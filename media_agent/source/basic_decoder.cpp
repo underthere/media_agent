@@ -47,6 +47,7 @@ auto BasicDecoder::slot_new_packet(MediaBuffer &buffer) -> void {
   }
 
   ret = avcodec_send_packet(dec_ctx_, pkt);
+  av_packet_free(&pkt);
   if (ret < 0) {
     if (ret == AVERROR(EAGAIN)) return;
     spdlog::warn("send packet to decoder failed:{}", av_err2str(ret));
