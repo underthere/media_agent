@@ -2,7 +2,6 @@
 // Created by underthere on 2023/8/9.
 //
 
-
 #include <chrono>
 #include <thread>
 extern "C" {
@@ -23,12 +22,10 @@ extern "C" {
 
 #include "fmt/format.h"
 
-#include "argparse/argparse.hpp"
 #include "tl/expected.hpp"
 
 #include "ringbuffer.hpp"
 #include "safe_queue.hpp"
-
 
 struct Stuff {
   AVFormatContext *in_fmt_ctx;
@@ -42,8 +39,7 @@ struct Stuff {
   const AVCodec *decoder;
   const AVCodec *encoder;
 
-  ring_buffer<AVPacket, 1000, av_packet_alloc, av_packet_free>
-      input_packet_queue;
+  safe_queue<AVPacket *> input_packet_queue;
   // ring_buffer<AVFrame, 25, av_frame_alloc, av_frame_free>
   // internal_frame_queue; ring_buffer<AVPacket, 25, av_packet_alloc,
   // av_packet_free> output_packet_queue;
@@ -79,15 +75,13 @@ struct Error {
   std::string msg;
 };
 
-auto open_input_file(std::shared_ptr<Stuff> stuff,
-                     const std::string &filepath)
+auto open_input_file(std::shared_ptr<Stuff> stuff, const std::string &filepath)
     -> tl::expected<void, Error>;
 
 auto open_output(std::shared_ptr<Stuff> stuff, const std::string &uri)
     -> tl::expected<void, Error>;
 
-auto open_hw_device(std::shared_ptr<Stuff> stuff,
-                    const std::string &dev_name)
+auto open_hw_device(std::shared_ptr<Stuff> stuff, const std::string &dev_name)
     -> tl::expected<void, Error>;
 
 auto read_write_frame(std::shared_ptr<Stuff> stuff)
@@ -99,29 +93,9 @@ inline auto read_input_packet(std::shared_ptr<Stuff> stuff)
 auto just_process(std::shared_ptr<Stuff> stuff) -> void;
 
 int main(int argc, char *argv[]) {
-  argparse::ArgumentParser program("rtmp_publisher");
-  program.add_argument("file")
-      .default_value(std::string{"../test.flv"})
-      .help("file to play");
-  program.add_argument("url")
-      .default_value(std::string{"rtmp://dev.smt.dyinnovations.com:1935/live/cltest"})
-      .help("url to publish");
-
-  try {
-    program.parse_args(argc, argv);
-  } catch (const std::runtime_error &err) {
-    std::cout << err.what() << std::endl;
-    std::cout << program;
-    exit(0);
-  }
-
   avformat_network_init();
 
-  std::string file_path{program.get<std::string>("file")};
-//  if (!std::filesystem::exists(file_path)) {
-//    std::cout << "file not exists" << std::endl;
-//    exit(1);
-//  }
+  std::string file_path{"/workdir/test.flv"};
 
   auto stuff = std::make_shared<Stuff>();
   auto res = open_input_file(stuff, file_path);
@@ -130,11 +104,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-#ifdef VAAPI_ON
-  open_hw_device(stuff, "vaapi");
-#endif
-
-  res = open_output(stuff, program.get<std::string>("url"));
+  res = open_output(stuff, "rtmp://120.24.65.63:1935/live/cltest");
   if (!res.has_value()) {
     std::cout << res.error().msg << std::endl;
     exit(1);
@@ -162,8 +132,7 @@ static enum AVPixelFormat get_vaapi_format(AVCodecContext *ctx,
   return AV_PIX_FMT_NONE;
 }
 
-auto open_input_file(std::shared_ptr<Stuff> stuff,
-                     const std::string &filepath)
+auto open_input_file(std::shared_ptr<Stuff> stuff, const std::string &filepath)
     -> tl::expected<void, Error> {
   int ret = avformat_open_input(&stuff->in_fmt_ctx, filepath.c_str(), nullptr,
                                 nullptr);
@@ -321,15 +290,17 @@ auto fn_read_input_thread(std::shared_ptr<Stuff> stuff) {
   int ret;
   std::size_t cnt = 0;
   while (true) {
-    auto &pkt = stuff->input_packet_queue.push();
-    ret = av_read_frame(stuff->in_fmt_ctx, &pkt);
+    auto pkt = av_packet_alloc();
+    ret = av_read_frame(stuff->in_fmt_ctx, pkt);
+    std::cout << "read source source: " << ++cnt << std::endl;
     if (ret < 0) {
       std::string av_err{av_err2str(ret)};
       std::cout << fmt::format("av_read_frame failed: {}", av_err) << std::endl;
+      av_packet_free(&pkt);
       break;
     }
+    stuff->input_packet_queue.push(pkt);
   }
-  stuff->input_packet_queue.all_done = true;
 }
 
 auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
@@ -342,7 +313,7 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
 
   ret = avcodec_parameters_to_context(
       stuff->dec_ctx, stuff->in_fmt_ctx->streams[stuff->v_index]->codecpar);
-  stuff->dec_ctx->hw_device_ctx = av_buffer_ref(stuff->hw_device_ctx);
+  // stuff->dec_ctx->hw_device_ctx = av_buffer_ref(stuff->hw_device_ctx);
   if (ret < 0) {
     std::string av_err{av_err2str(ret)};
     std::cout << fmt::format("avcodec_parameters_to_context failed: {}", av_err)
@@ -350,7 +321,8 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
     return;
   }
 
-  stuff->dec_ctx->get_format = get_vaapi_format;
+  // stuff->dec_ctx->get_format = ge;
+  stuff->dec_ctx->pix_fmt = AV_PIX_FMT_DRM_PRIME;
 
   ret = avcodec_open2(stuff->dec_ctx, stuff->decoder, nullptr);
   if (ret < 0) {
@@ -375,46 +347,18 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
 
   bool encoder_init = false;
   // AVFrame* frame = av_frame_alloc();
-  while (!stuff->input_packet_queue.all_done) {
-    AVFrame* frame = av_frame_alloc();
+  while (true) {
+    AVFrame *frame = av_frame_alloc();
     // auto &frame = stuff->internal_frame_queue.push();
     do {
-      auto &pkt = stuff->input_packet_queue.pop();
-      if (pkt.stream_index != stuff->v_index) {
+      auto pkt = stuff->input_packet_queue.pop();
+      if (pkt->stream_index != stuff->v_index) {
         continue;
       }
 
-      // auto itb = stuff->in_fmt_ctx->streams[stuff->v_index]->time_base;
-      // auto otb = stuff->output_stream->time_base;
-      // std::cout << fmt::format("itb: {}/{}, otb: {}/{}", itb.num, itb.den,
-      //                          otb.num, otb.den)
-      //           << std::endl;
-      // av_packet_rescale_ts(&pkt, itb, stuff->dec_ctx->time_base);
-      // pkt.stream_index = stuff->output_stream->index;
-      // std::cout << fmt::format("read frame: pts: {}, dts: {}, duration: {}",
-      //                          pkt.pts, pkt.dts, pkt.duration)
-      //           << std::endl;
-      // pkt.pts = av_rescale_q_rnd(pkt.pts, itb, otb, AV_ROUND_NEAR_INF);
-      // pkt.dts = av_rescale_q_rnd(pkt.dts, itb, otb, AV_ROUND_NEAR_INF);
-      // pkt.duration =
-      //     av_rescale_q_rnd(pkt.duration, itb, otb, AV_ROUND_NEAR_INF);
-      // std::cout << fmt::format("scaled frame: pts: {}, dts: {}, duration:
-      // {}",
-      //                          pkt.pts, pkt.dts, pkt.duration)
-      //           << std::endl;
-      // pkt.pos = -1;
+      std::cout << "pop input packet size: " << pkt->size << std::endl;
 
-      // auto now = av_gettime() - st;
-      // auto dts = static_cast<std::int64_t>(pkt.dts * (1000 * 1000 *
-      // r2d(otb))); if (dts > now) {
-      //   std::cout << fmt::format("sleep for {} ms", (dts - now) / 1000)
-      //             << std::endl;
-      //   std::this_thread::sleep_for(std::chrono::microseconds(dts - now));
-      // }
-
-      // av_interleaved_write_frame(stuff->out_fmt_ctx, &pkt);
-
-      if ((ret = avcodec_send_packet(stuff->dec_ctx, &pkt)) < 0) {
+      if ((ret = avcodec_send_packet(stuff->dec_ctx, pkt)) < 0) {
         if (ret == AVERROR(EAGAIN)) {
           continue;
         }
@@ -424,6 +368,7 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
                   << std::endl;
         return;
       }
+      av_packet_free(&pkt);
       if ((ret = avcodec_receive_frame(stuff->dec_ctx, frame)) < 0) {
         if (ret == AVERROR(EAGAIN)) {
           continue;
@@ -434,21 +379,20 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
                   << std::endl;
         return;
       }
-      // stuff->internal_frame_queue.push(frame);
+      frame->duration = 40;
+      if (frame->pts < 0)
+        frame->pts = 0;
+      std::cout << fmt::format("decode frame dec_hw_ctx: {} hw_ctx: {}, pts: {}, duration: {}", (void*)stuff->dec_ctx->hw_frames_ctx, (void*)frame->hw_frames_ctx, frame->pts, frame->duration);
 
       if (!encoder_init) {
-        stuff->enc_ctx->hw_frames_ctx =
-            av_buffer_ref(stuff->dec_ctx->hw_frames_ctx);
-        if (!stuff->enc_ctx->hw_frames_ctx) {
-          std::cout << "av_buffer_ref failed" << std::endl;
-          return;
-        }
+        stuff->enc_ctx->hw_frames_ctx = av_buffer_ref(frame->hw_frames_ctx);
         stuff->enc_ctx->width = stuff->dec_ctx->width;
         stuff->enc_ctx->height = stuff->dec_ctx->height;
-        stuff->enc_ctx->pix_fmt = AV_PIX_FMT_DRM_PRIME;
-        stuff->enc_ctx->profile = FF_PROFILE_H264_HIGH;
-        stuff->enc_ctx->bit_rate = 4 * 1000 * 1000;
-        stuff->enc_ctx->time_base = av_inv_q(stuff->dec_ctx->framerate);
+        stuff->enc_ctx->pix_fmt = (AVPixelFormat)frame->format;
+        stuff->enc_ctx->profile = FF_PROFILE_H264_BASELINE;
+        stuff->enc_ctx->level = 41;
+        stuff->enc_ctx->bit_rate = 2 * 1000 * 1000;
+        stuff->enc_ctx->time_base = {1, 25};
         // stuff->enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
         if (stuff->out_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER) {
           stuff->enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -479,8 +423,9 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
         }
 
         stuff->output_stream->codecpar->codec_tag = 0;
-        ret = avio_open(&stuff->out_fmt_ctx->pb,
-                        "rtmp://dev.smt.dyinnovations.com:1935/live/cltest", AVIO_FLAG_WRITE);
+        ret =
+            avio_open(&stuff->out_fmt_ctx->pb,
+                      "rtmp://120.24.65.63:1935/live/cltest", AVIO_FLAG_WRITE);
         if (ret < 0) {
           std::string av_err{av_err2str(ret)};
           std::cout << fmt::format("avio_open failed: {}", av_err) << std::endl;
@@ -496,6 +441,8 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
 
         encoder_init = true;
       }
+      // std::cout << "encoded frame pts: " << frame->pts << " duration: " <<
+      // frame->duration << std::endl;
       ret = avcodec_send_frame(stuff->enc_ctx, frame);
       if (ret < 0) {
         std::string av_err{av_err2str(ret)};
@@ -529,8 +476,10 @@ auto fn_consume_input_thread(std::shared_ptr<Stuff> stuff) {
                   << std::endl;
         std::this_thread::sleep_for(std::chrono::microseconds(dts - now));
       }
-      std::cout << fmt::format("receive frame: pts: {}, dts: {}", pkt_out.pts,
-                               pkt_out.dts)
+      std::cout << fmt::format("receive reencode packet: pts: {}, dts: {}, "
+                       "duration: {}, size: {}",
+                       pkt_out.pts, pkt_out.dts, pkt_out.duration,
+                       pkt_out.size)
                 << std::endl;
       ret = av_interleaved_write_frame(stuff->out_fmt_ctx, &pkt_out);
       if (ret < 0) {
