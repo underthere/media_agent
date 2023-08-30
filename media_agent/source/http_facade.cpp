@@ -8,7 +8,7 @@
 #include "common/av_misc.hpp"
 using namespace cinatra;
 
-HttpFacade::HttpFacade(int port) : port_(port), server_(HttpFacade::DEFAULT_THREADS) {}
+HttpFacade::HttpFacade(std::shared_ptr<MA::MediaAgent> ma, int port) : port_(port), ma_(ma), server_(HttpFacade::DEFAULT_THREADS) {}
 
 auto HttpFacade::start() -> int {
   server_.listen("0.0.0.0", std::to_string(port_));
