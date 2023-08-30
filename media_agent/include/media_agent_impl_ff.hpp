@@ -13,8 +13,11 @@
 
 namespace MA {
 
-class MediaAgentImplFF: MediaAgent {
+class MediaAgentImplFF: public MediaAgent {
  public:
+  MediaAgentImplFF() = default;
+  virtual ~MediaAgentImplFF() = default;
+
   void init() override;
   auto add_source(const MediaDescription& description, const std::optional<uuid_t>& id) -> tl::expected<uuid_t, Error> override;
   auto configure_source(const uuid_t& source_id, const MediaDescription& description) -> tl::expected<void, Error> override;
