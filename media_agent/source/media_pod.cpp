@@ -2,6 +2,7 @@
 // Created by underthere on 2023/8/7.
 //
 
+#include "spdlog/spdlog.h"
 #include "media_pod.hpp"
 
 using namespace async_simple;
@@ -9,7 +10,7 @@ using namespace async_simple;
 namespace MA {
 
 MediaPod::MediaPod(const std::string &id, const MA::MediaDescription &desc) : id_(id), source_desc_(desc) {
-  this->source_reader_ = std::make_shared<MEDIA_READER_T>(desc);
+  this->source_reader_ = std::make_shared<MEDIA_READER_T>(desc, true);
 }
 
 MediaPod::~MediaPod() {}

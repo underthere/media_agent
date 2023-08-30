@@ -2,16 +2,16 @@
 
 #include "async_simple/coro/SyncAwait.h"
 #include "cinatra.hpp"
-#include "media_pod.hpp"
 #include "spdlog/spdlog.h"
-#include "http_facade/http_facade.hpp"
-#include "transformers/basic_decoder.hpp"
-#include "transformers/basic_encoder.hpp"
 
+#include "media_agent_impl_ff.hpp"
+#include "http_facade/http_facade.hpp"
+
+using namespace std::chrono_literals;
 using namespace async_simple;
 
 auto async_main() -> coro::Lazy<int> {
-  spdlog::set_level(spdlog::level::trace);
+  spdlog::set_level(spdlog::level::debug);
   MA::MediaDescription desc = {.protocol = MA::MediaProtocol::FILE, .uri = "/workdir/test.flv"};
   MA::VideoDescription vdesc = {
       .width = 1920,
@@ -30,16 +30,20 @@ auto async_main() -> coro::Lazy<int> {
 
   };
 
-  auto reader = std::make_shared<MA::MEDIA_READER_T>(desc, true);
-  auto decoder = std::make_shared<MA::BasicDecoder>(desc, desc);
-  auto encoder = std::make_shared<MA::BasicEncoder>(output_desc, output_desc);
-  auto writer = std::make_shared<MA::MEDIA_WRITER_T>(output_desc);
+  auto agent = std::make_shared<MA::MediaAgentImplFF>();
+  agent->init();
 
-  auto slot = reader->sig_new_packet_.connect([t = decoder.get()](auto &&buffer) { t->slot_new_packet(buffer); });
-
-  auto slot0 = decoder->signal_new_frame.connect([t = encoder.get()](auto &&buffer) { t->slot_new_frame(buffer); });
-
-  auto slot1 = encoder->signal_new_packet.connect([t = writer.get()](auto &&buffer) { t->slot_new_packet(buffer); });
+  MA::uuid_t src_id {"src001"}, out_id {"out001"};
+  auto src_res = agent->add_source(desc, src_id);
+  if (!src_res.has_value()) {
+    spdlog::error("add source error: {}", src_res.error().message);
+    co_return -1;
+  }
+  auto rest = agent->add_transform(src_id, output_desc, out_id);
+  if (!rest.has_value()) {
+    spdlog::error("add transform error: {}", rest.error().message);
+    co_return -1;
+  }
 
   HttpFacade facade;
 
@@ -48,7 +52,10 @@ auto async_main() -> coro::Lazy<int> {
     facade.start();
   });
 
-  co_await reader->run();
+  while (true) {
+    co_await coro::sleep(100ms);
+  }
+
   t.join();
 
   co_return 0;

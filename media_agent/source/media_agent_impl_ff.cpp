@@ -4,12 +4,18 @@
 
 #include "media_agent_impl_ff.hpp"
 #include "utils/misc.hpp"
+#include "spdlog/spdlog.h"
 
 namespace MA {
 void MA::MediaAgentImplFF::init() {}
 tl::expected<uuid_t, Error> MA::MediaAgentImplFF::add_source(const MA::MediaDescription& description, const std::optional<uuid_t>& id) {
   uuid_t ret_id = id.value_or(generate_uuid());
-  media_pods_.emplace(ret_id, std::make_shared<MediaPod>(ret_id, description));
+  auto pod = std::make_shared<MediaPod>(ret_id, description);
+  media_pods_.emplace(ret_id, pod);
+  auto plan = pod->run().via(coro_io::get_global_executor());
+  plan.start([](auto &&res) {
+
+  });
   return ret_id;
 }
 tl::expected<void, Error> MA::MediaAgentImplFF::configure_source(const MA::uuid_t& source_id, const MA::MediaDescription& description) {
