@@ -13,7 +13,7 @@
 class HttpFacade {
   static constexpr unsigned int DEFAULT_THREADS=2;
  public:
-  HttpFacade(std::shared_ptr<MA::MediaAgent> ma, int port = 18080);
+  explicit HttpFacade(std::shared_ptr<MA::MediaAgent> ma, int port = 18080);
   ~HttpFacade() = default;
 
  auto start() -> int;

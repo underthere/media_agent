@@ -57,9 +57,9 @@ struct VideoDescription {
 
   PixelFormat pixel_format;
   CodecFormat codec_format;
-  Profile profile;
-  uint32_t level;
-  std::uint64_t bitrate;  // in bps
+  std::optional<Profile> profile = std::nullopt;
+  std::optional<uint32_t> level = std::nullopt;
+  std::optional<std::uint64_t> bitrate = std::nullopt;  // in bps
 };
 
 struct AudioDescription {};
@@ -67,9 +67,9 @@ struct AudioDescription {};
 struct MediaDescription {
   MediaProtocol protocol;
   std::string uri;
-  std::optional<VideoDescription> video_description;
-  std::optional<AudioDescription> audio_description;
-  std::optional<void*> custom_description;
+  std::optional<VideoDescription> video_description = std::nullopt;
+  std::optional<AudioDescription> audio_description = std::nullopt;
+  std::optional<void*> custom_description = std::nullopt;
 };
 
 enum class MediaBufferType {

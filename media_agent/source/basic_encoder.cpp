@@ -49,7 +49,8 @@ auto BasicEncoder::slot_new_frame(MediaBuffer& in_buffer) -> void {
     enc_ctx_->time_base = {1, 25};
     enc_ctx_->profile = FF_PROFILE_H264_BASELINE;
     enc_ctx_->level = 31;
-    enc_ctx_->bit_rate = output_desc_.video_description->bitrate;
+
+    enc_ctx_->bit_rate = output_desc_.video_description->bitrate.value_or(0);
     enc_ctx_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     ret = avcodec_open2(enc_ctx_, encoder_, nullptr);

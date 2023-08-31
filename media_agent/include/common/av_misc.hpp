@@ -7,8 +7,8 @@
 
 #include <string>
 extern "C" {
-#include "libavutil/avutil.h"
 #include "libavcodec/avcodec.h"
+#include "libavutil/avutil.h"
 #include "libavutil/time.h"
 }
 
@@ -101,16 +101,17 @@ inline auto codec_format_to_string(const MA::CodecFormat& format) -> std::string
 }
 
 inline auto video_desc_to_json(const MA::VideoDescription& desc) {
-  return json{
+  json j{
       {"width", desc.width},
       {"height", desc.height},
       {"fps", desc.fps},
       {"pixel_format", pixel_format_to_string(desc.pixel_format)},
       {"codec_format", codec_format_to_string(desc.codec_format)},
-      {"profile", profile_to_string(desc.profile)},
-      {"level", desc.level},
-      {"bitrate", desc.bitrate},
   };
+  if (desc.profile.has_value()) j.push_back({"profile", profile_to_string(desc.profile.value())});
+  if (desc.level.has_value()) j.push_back({"level", desc.level.value()});
+  if (desc.bitrate.has_value()) j.push_back({"bitrate", desc.bitrate.value()});
+  return j;
 }
 
 inline auto opt_video_desc_to_json(const std::optional<MA::VideoDescription>& desc) {
@@ -155,16 +156,18 @@ inline auto codec_format_from_string(const std::string& p) -> MA::CodecFormat {
 }
 
 inline auto json_to_video_desc(const json& j) -> MA::VideoDescription {
-  return MA::VideoDescription{
+  MA::VideoDescription desc{
       .width = j["width"].get<uint32_t>(),
       .height = j["height"].get<uint32_t>(),
       .fps = j["fps"].get<uint32_t>(),
       .pixel_format = pixel_format_from_string(j["pixel_format"].get<std::string>()),
       .codec_format = codec_format_from_string(j["codec_format"].get<std::string>()),
-      .profile = profile_from_string(j["profile"].get<std::string>()),
-      .level = j["level"].get<uint32_t>(),
-      .bitrate = j["bitrate"].get<uint32_t>(),
   };
+  if (j.contains("profile")) desc.profile = profile_from_string(j["profile"].get<std::string>());
+  if (j.contains("level")) desc.level = j["level"].get<uint32_t>();
+  if (j.contains("bitrate")) desc.bitrate = j["bitrate"].get<uint32_t>();
+
+  return desc;
 }
 
 inline auto json_to_opt_video_desc(const json& j) -> std::optional<MA::VideoDescription> {
@@ -175,10 +178,9 @@ inline auto json_to_opt_video_desc(const json& j) -> std::optional<MA::VideoDesc
 inline auto json_to_media_desc(const json& j) -> MA::MediaDescription {
   return MA::MediaDescription{
       .protocol = protocol_from_string(j["protocol"].get<std::string>()),
-      .uri = j["uri"].get<std::string>(),      
+      .uri = j["url"].get<std::string>(),
       .video_description = json_to_opt_video_desc(j.at("video_description")),
   };
 }
-
 
 #endif  // MEDIA_AGENT_AV_MISC_HPP

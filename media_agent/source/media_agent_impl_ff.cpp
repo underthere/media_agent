@@ -13,9 +13,7 @@ tl::expected<uuid_t, Error> MA::MediaAgentImplFF::add_source(const MA::MediaDesc
   auto pod = std::make_shared<MediaPod>(ret_id, description);
   media_pods_.emplace(ret_id, pod);
   auto plan = pod->run().via(coro_io::get_global_executor());
-  plan.start([](auto &&res) {
-
-  });
+  plan.start([](auto &&res) {});
   return ret_id;
 }
 tl::expected<void, Error> MA::MediaAgentImplFF::configure_source(const MA::uuid_t& source_id, const MA::MediaDescription& description) {
