@@ -21,7 +21,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --rockchip)
-            rockchip="1"
+            ROCKCHIP="1"
             shift
             ;;
         *)
@@ -44,5 +44,5 @@ else
 fi
 
 pushd "$CURRENT_DIR" || exit
-docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg ROCKCHIP="${rockchip}" --platform ${PLATFORM} -t ${IMAGE_NAME} .
+docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg ROCKCHIP="${ROCKCHIP}" --platform ${PLATFORM} -t ${IMAGE_NAME} .
 popd || exit
