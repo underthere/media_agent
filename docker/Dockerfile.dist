@@ -1,0 +1,49 @@
+ARG BUILDER_IMAGE=media-agent:builder
+ARG BASE_IMAGE=debian:11-slim
+FROM ${BUILDER_IMAGE} as builder
+FROM ${BASE_IMAGE} as dist
+
+ARG D_HTTP_PROXY=""
+ARG D_HTTPS_PROXY=""
+
+ENV http_proxy=$D_HTTP_PROXY
+ENV https_proxy=$D_HTTPS_PROXY
+ENV HTTP_PROXY=$D_HTTP_PROXY
+ENV HTTPS_PROXY=$D_HTTPS_PROXY
+
+# Install tools
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libaio-dev \
+    wget \
+    libva-dev \
+    yasm nasm \
+    libx264-dev \
+    libx265-dev \
+    librtmp-dev \
+    libssl-dev \
+    lsb-release \
+    pkg-config \
+    software-properties-common \
+    gnupg \
+    uuid-dev \
+    zlib1g-dev \
+    libssl-dev \
+    libdrm-dev \
+    meson \
+    ninja-build
+
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /usr/lib/llvm-16/lib/libc++* /usr/local/lib/
+COPY --from=builder /usr/lib/llvm-16/lib/libunwind* /usr/local/lib/ 
+ENV http_proxy=""
+ENV https_proxy=""
+ENV HTTP_PROXY=""
+ENV HTTPS_PROXY=""
+
+
+ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+ENV PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+ENV IN_DOCKER=1

@@ -6,6 +6,7 @@ CURRENT_DIR=$(cd "$script_dir" || exit; pwd)
 PLATFORM="linux/amd64"
 IMAGE_NAME="media-agent-dev:latest"
 ROCKCHIP=""
+DIST=""
 
 # 使用 getopts 解析命令行选项和参数
 while [[ $# -gt 0 ]]; do
@@ -22,6 +23,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --rockchip)
             ROCKCHIP="1"
+            shift
+            ;;
+        --dist-name)
+            shift
+            DIST="$1"
             shift
             ;;
         *)
@@ -45,4 +51,7 @@ fi
 
 pushd "$CURRENT_DIR" || exit
 docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg ROCKCHIP="${ROCKCHIP}" --platform ${PLATFORM} -t ${IMAGE_NAME} .
+if [ "$DIST" ]; then
+    docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg BUILDER_IMAGE="${IMAGE_NAME}" --platform ${PLATFORM} -t ${DIST} -f Dockerfile.dist .
+fi
 popd || exit
