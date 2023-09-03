@@ -1,0 +1,38 @@
+{
+    "sources": [
+        {
+            "id": "test",
+            "media_description": {
+                "protocol": "rtmp",
+                "uri": "rtmp://dev.smt.dyinnovations.com/live/test",
+                "video_description": {
+                    "width": 1920,
+                    "height": 1080,
+                    "fps": 25,
+                    "pixel_format": "",
+                    "codec_format": "h264"
+                }
+            }
+        }
+    ],
+    "transforms": [
+        {
+            "source_id": "test",
+            "transform_id": "test_out",
+            "media_description": {
+                "protocol": "rtmp",
+                "uri": "rtmp://dev.smt.dyinnovations.com/live/test_out",
+                "video_description": {
+                    "width": 1920,
+                    "height": 1080,
+                    "fps": 25,
+                    "pixel_format": "",
+                    "codec_format": "h264",
+                    "bitrate": 2000000,
+                    "profile": "baseline",
+                    "level": 31
+                }
+            }
+        }
+    ]
+}
