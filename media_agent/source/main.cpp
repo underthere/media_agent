@@ -59,7 +59,6 @@ auto async_main() -> coro::Lazy<int> {
   agent->init();
 
   preload_legacy(agent);
-  co_return 0;
 
   HttpFacade facade{agent};
 

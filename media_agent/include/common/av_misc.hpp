@@ -178,7 +178,7 @@ inline auto json_to_opt_video_desc(const json& j) -> std::optional<MA::VideoDesc
 inline auto json_to_media_desc(const json& j) -> MA::MediaDescription {
   return MA::MediaDescription{
       .protocol = protocol_from_string(j["protocol"].get<std::string>()),
-      .uri = j["url"].get<std::string>(),
+      .uri = j["uri"].get<std::string>(),
       .video_description = json_to_opt_video_desc(j.at("video_description")),
   };
 }
