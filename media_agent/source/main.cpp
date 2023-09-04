@@ -10,13 +10,19 @@
 #include "mediaagent.hpp"
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
+#include "utils/argparse.hpp"
 
 using namespace std::chrono_literals;
 using namespace async_simple;
 
-auto preload_legacy(const std::shared_ptr<MA::MediaAgent> ma) -> void {
-  static const std::string preload_filepath{"./preload.json"};
-  std::ifstream preload_file(preload_filepath);
+constexpr auto DEFAULT_PRELOAD_FILEPATH = "./preload.json";
+
+auto preload_legacy(const std::shared_ptr<MA::MediaAgent>& ma, const std::string& preload_filepath) -> void {
+  auto real_preload_path = preload_filepath;
+  if (preload_filepath.length() == 0) {
+    real_preload_path = DEFAULT_PRELOAD_FILEPATH;
+  }
+  std::ifstream preload_file(real_preload_path);
   nlohmann::json preload_config;
   preload_file >> preload_config;
 
@@ -54,11 +60,18 @@ auto preload_legacy(const std::shared_ptr<MA::MediaAgent> ma) -> void {
   }
 }
 
-auto async_main() -> coro::Lazy<int> {
+auto async_main(int argc, const char** argv) -> coro::Lazy<int> {
+  cmdline::parser parser;
+  parser.add<std::string>("legacy-preload", 'l', "legacy preload filepath", false, "./preload.json");
+  if (!parser.parse(argc, argv)) {
+    std::cerr << parser.usage();
+    co_return 1;
+  }
+
   std::shared_ptr<MA::MediaAgent> agent = std::make_shared<MA::MediaAgentImplFF>();
   agent->init();
 
-  preload_legacy(agent);
+  preload_legacy(agent, parser.get<std::string>("legacy-preload"));
 
   HttpFacade facade{agent};
 
@@ -72,4 +85,4 @@ auto async_main() -> coro::Lazy<int> {
   }
 }
 
-int main() { return async_simple::coro::syncAwait(async_main()); }
+int main(int argc, const char** argv) { return async_simple::coro::syncAwait(async_main(argc, argv)); }
