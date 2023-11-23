@@ -164,3 +164,55 @@ ENV HTTP_PROXY=""
 ENV HTTPS_PROXY=""
 
 ENV IN_DOCKER=1
+
+# compile && install media agent
+COPY .. /opt/media_agent
+RUN cmake -S /opt/media_agent -B /opt/media_agent/build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build /opt/media_agent/build --target install && \
+    rm -rf /opt/media_agent
+
+
+FROM ${BASE_IMAGE} as dist
+ENV http_proxy=$D_HTTP_PROXY
+ENV https_proxy=$D_HTTPS_PROXY
+ENV HTTP_PROXY=$D_HTTP_PROXY
+ENV HTTPS_PROXY=$D_HTTPS_PROXY
+
+# Install tools
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libaio-dev \
+    wget \
+    libva-dev \
+    yasm nasm \
+    libx264-dev \
+    libx265-dev \
+    librtmp-dev \
+    libssl-dev \
+    lsb-release \
+    pkg-config \
+    software-properties-common \
+    gnupg \
+    uuid-dev \
+    zlib1g-dev \
+    libssl-dev \
+    libdrm-dev \
+    meson \
+    ninja-build
+
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /usr/lib/llvm-16/lib/libc++* /usr/local/lib/
+COPY --from=builder /usr/lib/llvm-16/lib/libunwind* /usr/local/lib/
+ENV http_proxy=""
+ENV https_proxy=""
+ENV HTTP_PROXY=""
+ENV HTTPS_PROXY=""
+
+
+ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+ENV PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+ENV IN_DOCKER=1
+
+CMD /usr/local/bin/media_agent --legacy-preload /kd_config/preload.json

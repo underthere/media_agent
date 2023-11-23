@@ -1,6 +1,6 @@
 #!/bin/bash
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
-CURRENT_DIR=$(cd "$script_dir" || exit; pwd)
+CURRENT_DIR=$(cd "$script_dir"/.. || exit; pwd)
 
 # 默认值
 PLATFORM="linux/amd64"
@@ -50,8 +50,5 @@ else
 fi
 
 pushd "$CURRENT_DIR" || exit
-docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg ROCKCHIP="${ROCKCHIP}" --platform ${PLATFORM} -t ${IMAGE_NAME} .
-if [ "$DIST" ]; then
-    docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg BUILDER_IMAGE="${IMAGE_NAME}" --platform ${PLATFORM} -t ${DIST} -f Dockerfile.dist .
-fi
+docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg ROCKCHIP="${ROCKCHIP}" --platform ${PLATFORM} -t ${IMAGE_NAME} -f docker/Dockerfile .
 popd || exit

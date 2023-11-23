@@ -21,3 +21,5 @@ set(dep_libs pthread uuid nlohmann_json::nlohmann_json fmt::fmt ${async_simple})
 add_executable(${EXE} ${source_files})
 target_include_directories(${EXE} PRIVATE include)
 target_link_libraries(${EXE} PUBLIC PkgConfig::ffmpeg ${dep_libs})
+
+install(TARGETS ${EXE} DESTINATION /usr/local/bin/)

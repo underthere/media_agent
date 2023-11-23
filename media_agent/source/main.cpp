@@ -15,14 +15,14 @@
 using namespace std::chrono_literals;
 using namespace async_simple;
 
-constexpr auto DEFAULT_PRELOAD_FILEPATH = "./preload.json";
 
 auto preload_legacy(const std::shared_ptr<MA::MediaAgent>& ma, const std::string& preload_filepath) -> void {
   auto real_preload_path = preload_filepath;
-  if (preload_filepath.length() == 0) {
-    real_preload_path = DEFAULT_PRELOAD_FILEPATH;
-  }
   std::ifstream preload_file(real_preload_path);
+  if (!preload_file.good()) {
+    spdlog::info("preload file {} not found", real_preload_path);
+    return;
+  }
   nlohmann::json preload_config;
   preload_file >> preload_config;
 
@@ -62,7 +62,7 @@ auto preload_legacy(const std::shared_ptr<MA::MediaAgent>& ma, const std::string
 
 auto async_main(int argc, const char** argv) -> coro::Lazy<int> {
   cmdline::parser parser;
-  parser.add<std::string>("legacy-preload", 'l', "legacy preload filepath", false, "./preload.json");
+  parser.add<std::string>("legacy-preload", 'l', "legacy preload filepath", false, "");
   if (!parser.parse(argc, argv)) {
     std::cerr << parser.usage();
     co_return 1;

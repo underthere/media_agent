@@ -12,6 +12,16 @@
 namespace MA {
 using namespace async_simple;
 
+static const std::unordered_map<iocb_cmd, io_uring_op> cmd_map = {
+    {IOCB_CMD_PREAD, IORING_OP_READ},
+    {IOCB_CMD_PWRITE, IORING_OP_WRITE},
+    {IOCB_CMD_FSYNC, IORING_OP_FSYNC},
+    {IOCB_CMD_FDSYNC, IORING_OP_FSYNC},
+    {IOCB_CMD_NOOP, IORING_OP_NOP},
+    {IOCB_CMD_PREADV, IORING_OP_READV},
+    {IOCB_CMD_PWRITEV, IORING_OP_WRITEV},
+};
+
 class SimpleIOExecutor : public IOExecutor {
   static constexpr std::uint32_t QD = 64;
   static constexpr std::uint32_t BS = 1024;
@@ -35,7 +45,9 @@ class SimpleIOExecutor : public IOExecutor {
   virtual ~SimpleIOExecutor() = default;
 
   void submitIO(int fd, iocb_cmd cmd, void* buffer, size_t length, off_t offset, AIOCallback cbfn) {
-    io_uring_submit(&ring_);
+    struct io_uring_sqe* sqe = io_uring_get_sqe(&ring_);
+    io_uring_prep_read(sqe, fd, buffer, length, offset);
+    io_uring_sqe_set_data(sqe, buffer);
   }
   void submitIOV(int fd, iocb_cmd cmd, const iovec_t* iov, size_t count, off_t offset, AIOCallback cbfn) {}
 
