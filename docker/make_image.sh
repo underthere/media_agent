@@ -50,5 +50,5 @@ else
 fi
 
 pushd "$CURRENT_DIR" || exit
-docker buildx build ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg ROCKCHIP="${ROCKCHIP}" --platform ${PLATFORM} -t ${IMAGE_NAME} -f docker/Dockerfile .
+docker buildx build --push ${D_HTTP_PROXY} ${D_HTTPS_PROXY} --build-arg ROCKCHIP="${ROCKCHIP}" --platform ${PLATFORM} -t ${IMAGE_NAME} -f docker/Dockerfile .
 popd || exit

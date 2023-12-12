@@ -148,13 +148,13 @@ else \
 fi
 
 # libdatachannel
-ARG LIBDATACHANNEL_GIT_TAG=v0.18.5
-RUN git clone -b $LIBDATACHANNEL_GIT_TAG --single-branch https://github.com/paullouisageneau/libdatachannel.git && \
-    pushd libdatachannel && git submodule update --init --recursive --depth 1 && \
-    pushd deps/usrsctp && git checkout master && popd && \
-    mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_GNUTLS=0 -DUSE_NICE=0 && \
-    make -j $(nproc) &&  make install && popd && rm -rf libdatachannel
+#ARG LIBDATACHANNEL_GIT_TAG=v0.18.5
+#RUN git clone -b $LIBDATACHANNEL_GIT_TAG --single-branch https://github.com/paullouisageneau/libdatachannel.git && \
+#    pushd libdatachannel && git submodule update --init --recursive --depth 1 && \
+#    pushd deps/usrsctp && git checkout master && popd && \
+#    mkdir build && cd build && \
+#    cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_GNUTLS=0 -DUSE_NICE=0 && \
+#    make -j $(nproc) &&  make install && popd && rm -rf libdatachannel
 
 RUN ln -s /usr/bin/clangd-16 /usr/bin/clangd
 
